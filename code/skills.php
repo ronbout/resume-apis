@@ -23,12 +23,12 @@ $app->get ( '/skills', function (Request $request, Response $response) {
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 	
-	$query = "SELECT * from skill ORDER BY name $limit_clause";
+	$query = 'SELECT Id "id", name, description, url from skill ORDER BY name ' . $limit_clause;
 	
 	if (! $result = $db->query ( $query )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Retrieving skills: ' . $result->errorCode () . ' - ' . $result->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -37,9 +37,7 @@ $app->get ( '/skills', function (Request $request, Response $response) {
 		$response_data [] = $info;
 	}
 	
-	$data = array (
-			'data' => $response_data 
-	);
+	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
@@ -61,12 +59,12 @@ $app->get ( '/skills/{id}', function (Request $request, Response $response) {
 	if ($errCode) {
 		return $db;
 	}
-	$stmt = $db->prepare ( 'SELECT * from skill WHERE Id = ?' );
+	$stmt = $db->prepare ( 'SELECT Id "id", name, description, url from skill WHERE Id = ?' );
 	
 	if (! $stmt->execute ( array ($id) )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Retrieving skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -79,9 +77,7 @@ $app->get ( '/skills/{id}', function (Request $request, Response $response) {
 	
 	$response_data = $stmt->fetch ( PDO::FETCH_ASSOC );
 	
-	$data = array (
-			'data' => $response_data 
-	);
+	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
@@ -91,7 +87,7 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 
 	if (! $srch) {
 		$data ['error'] = true;
-		$data ['message'] = 'Id is required.';
+		$data ['message'] = 'Search field is required.';
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -114,7 +110,7 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$stmt = $db->prepare ( "SELECT * from skill WHERE name LIKE ? ORDER BY name $limit_clause");
+	$stmt = $db->prepare ( 'SELECT Id "id", name, description, url from skill WHERE name LIKE ? ORDER BY name ' . $limit_clause);
 
 	// add wildcards to search string...may be based on parameters at some point
 	// TODO: provide different types of searches with and w/o various wildcards
@@ -125,7 +121,7 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 	) )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Retrieving skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -173,7 +169,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	if (! $stmt->execute ( array ($name) )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Accessing Skill table: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -184,7 +180,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 	
-	$stmt = $db->prepare ( 'INSERT INTO skill (Name, Description, Url) VALUES ( ?,?,? )' );
+	$stmt = $db->prepare ( 'INSERT INTO skill (name, description, url) VALUES ( ?,?,? )' );
 	
 	if (! $stmt->execute ( array (
 			$name,
@@ -193,7 +189,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	) ) || ($stmt->rowCount () == 0)) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Inserting Skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
@@ -246,7 +242,7 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 	if (! $stmt->execute ( array ($id) )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Retrieving skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -258,7 +254,7 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 	}
 	
 	// have to build SQL based on which fields were passed in_array
-	$sql = 'UPDATE skill SET ' . $sql_cols [0] . ' WHERE id = ?';
+	$sql = 'UPDATE skill SET ' . $sql_cols [0] . ' WHERE Id = ?';
 	
 	$stmt = $db->prepare ( $sql );
 	// add id to end of execute array
@@ -267,20 +263,16 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 	if (! $stmt->execute ( $sql_array ) || ($stmt->rowCount () == 0)) {
 		$data ['error'] = true;
 		$data ['message'] = 'Unable to update Skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
 	// let's get the full record and return it, just in case...may remove later
-	$stmt = $db->prepare ( 'SELECT * from skill WHERE Id = ?' );
+	$stmt = $db->prepare ( 'SELECT Id "id", name, description, url from skill WHERE Id = ?' );
 	
-	if (! $stmt->execute ( array (
-			$id 
-	) )) {
+	if (! $stmt->execute (array ($id) )) {
 		// had trouble retrieving full record so just return post data
-		$data = array (
-				'data' => $post_data 
-		);
+		$data = array ('data' => $post_data );
 		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -288,9 +280,7 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 	$response_data = $stmt->fetch ( PDO::FETCH_ASSOC );
 	
 	// wrap it in data object
-	$data = array (
-			'data' => $response_data 
-	);
+	$data = array (	'data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
@@ -320,13 +310,13 @@ $app->delete ( '/skills/{id}', function (Request $request, Response $response) {
 	) ) || ($stmt->rowCount () == 0)) {
 		$data ['error'] = true;
 		$data ['message'] = 'Unable to delete Skill ' . $id . ' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
 	$data ['error'] = false;
 	$data ['message'] = 'Skill successfully deleted';
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
 
@@ -358,18 +348,15 @@ $app->get ( '/skill_tags/{id}', function (Request $request, Response $response) 
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$stmt = $db->prepare ( 'select s.id "skillid", s.Name "skillname", t.id "tagid", t.name "tagname"
-	FROM skill s, techtags t, skill_tag st
-	where st.skillId = s.Id
-	and st.tagId = t.Id
+	$stmt = $db->prepare ( 'select t.Id "id" , t.name, t.description
+	FROM techtags t, skill_tag st
+	where st.tagId = t.Id
 	and st.skillId = ? ORDER BY t.name' . $limit_clause);
 
-	if (! $stmt->execute ( array (
-			$id
-	) )) {
+	if (! $stmt->execute ( array ($id) )) {
 		$data ['error'] = true;
 		$data ['message'] = 'Database SQL Error Retrieving Skills: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -382,9 +369,7 @@ $app->get ( '/skill_tags/{id}', function (Request $request, Response $response) 
 
 	$response_data = $stmt->fetchAll ( PDO::FETCH_ASSOC );
 
-	$data = array (
-			'data' => $response_data
-	);
+	$data = array (	'data' => $response_data);
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
@@ -407,31 +392,40 @@ $app->delete ( '/skill_tags/{skillid}/{tagid}', function (Request $request, Resp
 	if ($errCode) {
 		return $db;
 	}
-	$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ? AND tagId = ?' );
+	
+	if (strtolower($tagId) == 'all') {
+		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ?' );
+		$executeArray = array( $skillId );
+	} else {
+		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ? AND tagId = ?' );
+		$executeArray = array( $skillId, $tagId	);
+	}
 
-	if (! $stmt->execute ( array ( $skillId, $tagId	) ) || ($stmt->rowCount () == 0)) {
+	if (! $stmt->execute ( $executeArray ) || ($stmt->rowCount () == 0 && strtolower($tagId) != 'all')) {
 		$data ['error'] = true;
-		$data ['message'] = 'Unable to delete Skill_Tag ' . $skillId . '/' . $tagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		$data ['message'] = 'Unable to delete Skill_Tag ' . $skillId . '-' . $tagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
 	$data ['error'] = false;
 	$data ['message'] = 'Skill_Tag successfully deleted';
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
 
 $app->post ( '/skill_tags', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
-
+// echo 'post data skill id: ', var_dump($post_data['skillid']);
+// echo 'post data tag ids: ', var_dump($post_data['tagids']);
+// die();
 	$skillId = isset ( $post_data ['skillid'] ) ? filter_var ( $post_data ['skillid'], FILTER_SANITIZE_STRING ) : null;
-	$tagId = isset ( $post_data ['tagid'] ) ? filter_var ( $post_data ['tagid'], FILTER_SANITIZE_STRING ) : null;
+	$tagIds = isset ( $post_data ['tagids'] ) ? filter_var_array ( $post_data ['tagids'], FILTER_SANITIZE_STRING ) : null;
 
-	if (! $skillId || ! $tagId ) {
+	if (! $skillId || ! $tagIds ) {
 		$data ['error'] = true;
-		$data ['message'] = 'Skill id and Tag id are required.';
+		$data ['message'] = 'Skill id and Tag ids are required.';
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -444,39 +438,22 @@ $app->post ( '/skill_tags', function (Request $request, Response $response) {
 		return $db;
 	}
 
-	// need to make sure that skill-tag combo does not already exist
-	$stmt = $db->prepare ( 'SELECT * from skill_tag WHERE skillid = ? AND tagid = ?' );
+	$stmt = $db->prepare ( 'INSERT IGNORE INTO skill_tag (skillid, tagid ) VALUES ( ?,? )' );
 
-	if (! $stmt->execute ( array ( $skillid, $tagId ) )) {
-		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Accessing Skill_Tag table: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-		return $newResponse;
+	// loop through the array of tagIds
+	foreach($tagIds as $tagId) {
+
+		if (! $stmt->execute (array ( $skillId, $tagId )) || ($stmt->rowCount () == 0)) {
+			$data ['error'] = true;
+			$data ['message'] = 'Database SQL Error Inserting Skill_Tag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+			$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
+			return $newResponse;
+		}
 	}
 
-	if (($stmt->rowCount())) {
-		$data ['error'] = true;
-		$data ['message'] = "Skill_tag $skillId / $tagId already exists";
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-		return $newResponse;
-	}
-
-	$stmt = $db->prepare ( 'INSERT INTO skill_tag (skillid, tagid ) VALUES ( ?,? )' );
-
-	if (! $stmt->execute (array ( $skillid, $tagId )) || ($stmt->rowCount () == 0)) {
-		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Inserting Skill_Tag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-		return $newResponse;
-	}
 	// everything was fine. return success
-	$data ['id'] = $db->lastInsertId ();
-	$data ['skillid'] = $skillId;
-	$data ['tagid'] = $tagId;
-	// wrap it in data object
-	$data = array (
-			'data' => $data
-	);
+	$data ['error'] = false;
+	$data ['message'] = 'Skill_Tags successfully created';
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
