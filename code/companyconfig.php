@@ -26,7 +26,7 @@ class CompanyInfo {
 $configLoc = 'C:\Users\ron\Documents\htdocs\test\admin\config.json';
 //$configLoc = '/var/www/html/test/admin/config.json';
 
-$app->get ( '/company', function (Request $request, Response $response) {
+$app->get ( '/companyconfig', function (Request $request, Response $response) {
 	global $configLoc;
 	
 	$data = array ();
@@ -52,7 +52,7 @@ $app->get ( '/company', function (Request $request, Response $response) {
 	return $newResponse;
 } );
 
-$app->get ( '/company/{company}', function (Request $request, Response $response) {
+$app->get ( '/companyconfig/{company}', function (Request $request, Response $response) {
 	global $configLoc;
 
 	$cc = $request->getAttribute ( 'company' );
@@ -87,7 +87,7 @@ $app->get ( '/company/{company}', function (Request $request, Response $response
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
-$app->post ( '/company', function (Request $request, Response $response) {
+$app->post ( '/companyconfig', function (Request $request, Response $response) {
 	global $configLoc;
 	$post_data = $request->getParsedBody ();
 	$data = array ();
@@ -159,7 +159,7 @@ $app->post ( '/company', function (Request $request, Response $response) {
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 } );
 
-$app->put ( '/company/{code}', function (Request $request, Response $response) {
+$app->put ( '/companyconfig/{code}', function (Request $request, Response $response) {
 	global $configLoc;
 	$cc = $request->getAttribute ( 'code' );
 	$post_data = $request->getParsedBody ();
@@ -232,7 +232,7 @@ $app->put ( '/company/{code}', function (Request $request, Response $response) {
 } );
 
 /*
-$app->delete ( '/company/{id}', function (Request $request, Response $response) {
+$app->delete ( '/companyconfig/{id}', function (Request $request, Response $response) {
 	// currently no plans for deleting a company through api
 die();
 } );

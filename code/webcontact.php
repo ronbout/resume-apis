@@ -70,10 +70,15 @@ $app->post('/webcontacts', function (Request $request, Response $response) {
 	$phone = isset($post_data['phone']) ? filter_var($post_data['phone'], FILTER_SANITIZE_STRING) : null ;
 	$message = isset($post_data['message']) ? filter_var($post_data['message'], FILTER_SANITIZE_STRING) : null ;
 	$resumelink = isset($post_data['resumelink']) ? filter_var($post_data['resumelink'], FILTER_SANITIZE_STRING) : null ;
+	// just for testing of memberid auditing...not going to keep this code
+	// TODO: REMOVE
+	$memberid = isset($post_data['memberId']) ? filter_var($post_data['memberId'], FILTER_SANITIZE_STRING) : '1' ;
 
-	if (!$name || !$email) {
+	// TODO:  REPLACE if ( !$name || !$email ) {
+	if (!$name || !$email || !$memberid) {
 		$data['error'] = true;
-		$data['message'] = 'Name and Email are required.';
+		// TODO:  REPLACE $data['message'] = 'Name and Email are required.';
+		$data['message'] = 'Name, Email and MemberId are required.';
 		$newResponse = $response->withJson($data, 400, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -96,9 +101,11 @@ $app->post('/webcontacts', function (Request $request, Response $response) {
 				return $newResponse;
 		}
 	}
-	$stmt = $db->prepare('INSERT INTO webcontact (Name, Email, Phone, Message, ResumeLink) VALUES ( ?,?,?,?,? )');
+	
+	// TODO: REPLACE $stmt = $db->prepare('INSERT INTO webcontact (Name, Email, Phone, Message, ResumeLink) VALUES ( ?,?,?,?,? )');
+	$stmt = $db->prepare('INSERT INTO webcontact (Name, Email, Phone, Message, ResumeLink, lastUpdateMembersId) VALUES ( ?,?,?,?,?,? )');
 
-	if (!$stmt->execute(array($name, $email, $phone, $message, $resumelink)) || ($stmt->rowCount() == 0) ) {
+	if (!$stmt->execute(array($name, $email, $phone, $message, $resumelink, $memberid)) || ($stmt->rowCount() == 0) ) {
 		$data['error'] = true;
 		$data['message'] = 'Database SQL Error Inserting WebContact: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
@@ -197,8 +204,9 @@ $app->put('/webcontacts/{id}', function (Request $request, Response $response) {
 });
 
 
-$app->delete('/webcontacts/{id}', function (Request $request, Response $response) {
+$app->delete('/webcontacts/{id}/{memberid}', function (Request $request, Response $response) {
 	$id = $request->getAttribute('id');
+	$memberid = $request->getAttribute('memberid');
 	$data = array();
 	
 	// have to get company code and api key..or error
@@ -210,9 +218,9 @@ $app->delete('/webcontacts/{id}', function (Request $request, Response $response
 		return $newResponse;
 	}
 
-	if (!$id) {
+	if (!$id || !$memberid ) {
 		$data['error'] = true;
-		$data['message'] = 'Id is required.';
+		$data['message'] = 'Id and MemberId are required.';
 		$newResponse = $response->withJson($data, 400, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -235,6 +243,15 @@ $app->delete('/webcontacts/{id}', function (Request $request, Response $response
 				return $newResponse;
 		}
 	}
+
+	$stmt = $db->prepare('SET @memberid=' . $memberid);
+	if (!$stmt->execute()) {
+		$data['error'] = true;
+		$data['message'] = 'set member : ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+	
 	$stmt = $db->prepare('DELETE FROM webcontact WHERE Id = ?');
 
 	if (!$stmt->execute(array($id)) || ($stmt->rowCount() == 0) ) {

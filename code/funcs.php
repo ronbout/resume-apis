@@ -146,6 +146,47 @@ function pdoConnect($companyCode, &$errorCode, $apiKeySent) {
 	return $cn;
 }
 
+function pdo_exec( Request $request, Response $response, $db, $query, $execArray, $errMsg, &$errCode, $checkCount = false, $ret_array = false ) {
+	$stmt = $db->prepare ( $query );
+	
+	if (! $stmt->execute ( $execArray )) {
+		$errCode = true;
+		$data ['error'] = true;
+		$data ['message'] = 'Database SQL Error ' . $errMsg . ' ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+	
+	if ( $stmt->rowCount () == 0) {
+		if ( $checkCount ) {
+			$errCode = true;
+			$data ['error'] = false;
+			$data ['message'] = 'No records Found';
+			$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+			return $newResponse;
+		} else {
+			return null;
+		}
+	}
+	
+	if ( $ret_array ) {
+		$ret_data = array();
+		while ( ($info = $stmt->fetch ( PDO::FETCH_ASSOC )) ) {
+			$ret_data [] = array_filter($info, function($val) {
+				return $val !== null;
+			});;
+		}
+		return $ret_data;
+	} else {
+		return array_filter($stmt->fetch ( PDO::FETCH_ASSOC ), function($val) {
+			return $val !== null;
+		});;
+	}
+
+	
+
+}
+
 function gmail($to, $subject, $body, $from="", $toName="")
 {
 	// function to send email using PHPMailer
