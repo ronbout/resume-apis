@@ -182,58 +182,52 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 			return $val !== null;
 		});;
 	}
-
-	
-
 }
 
-function gmail($to, $subject, $body, $from="", $toName="")
-{
-	// function to send email using PHPMailer
-	// through gmail apps account with smtp
+function runLowerObject( $obj, $newObjName, $fieldList = null ) {
+
+	$obj_fields = array('personId', 
+			'personFormattedName',
+			'personGivenName',
+			'personMiddleName',
+			'personFamilyName',
+			'personAffix',
+			'personAddr1',
+			'personAddr2',
+			'personMunicipality',
+			'personRegion',
+			'personPostalCode',
+			'personCountryCode',
+			'personEmail1',
+			'personEmail2',
+			'personWebsite',
+			'personHomePhone',
+			'personWorkPhone',
+			'personMobilePhone'
+	);
+
+	if ( is_callable($fieldList) ) {
+		// we have a callback function to run against the default field list
+		$flds = array_map($fieldList, $social_fields );
+	} elseif ( is_array($fieldList) ) {
+		$flds = $fieldList;
+	} else {
+		$flds = $obj_fields;
+	}
+
+	return createLowerObject( $obj, $newObjName, $flds );
+}
+
+function createLowerObject( $obj, $newObjName, $fieldList ) {
+	$tmpObj = array();
 	
-
-	include("class.phpmailer.php");
-	include("class.smtp.php");
-	// get email name and password
-	$passInfo = file('C:\Users\ron\Documents\passwords\gmail.txt');
-	//$passInfo = file('/var/www/passwords/gmail.txt');
-	if (!is_array($passInfo)) return "Could not access gmail user/password info!";
-	$mail             = new PHPMailer();
-
-	$gmailUser = trim($passInfo[0]);
-	$mail->IsSMTP();
-	$mail->SMTPAuth   = true;                  // enable SMTP authentication
-	$mail->SMTPSecure = "ssl";                 // sets the prefix to the servier
-	$mail->Host       = "smtp.gmail.com";      // sets GMAIL as the SMTP server
-	$mail->Port       = 465;                   // set the SMTP port
-
-	$mail->Username   = $gmailUser;  			 // GMAIL username
-	$mail->Password   = trim($passInfo[1]);            // GMAIL password
-
-	$mail->From       = $gmailUser;
-	$mail->FromName   = $from;
-	$mail->Subject    = $subject;
-	$mail->AltBody    = $body; //Text Body
-	$mail->WordWrap   = 50; // set word wrap
-
-	$mail->MsgHTML($body);
-
-	$mail->AddReplyTo($gmailUser,$from);
-
-	//$mail->AddAttachment("/path/to/file.zip");             // attachment
-	//$mail->AddAttachment("/path/to/image.jpg", "new.jpg"); // attachment
-
-	$mail->AddAddress($to,$toName);
-
-	$mail->IsHTML(true); // send as HTML
-
-	if(!$mail->Send())
-	{
-		return $mail->ErrorInfo;
-	} 
-	else 
-	{
-		return 0;
-	}		
+	foreach( $fieldList as $fld ) {
+		if ( array_key_exists($fld, $obj) ) {
+			$tmpObj[$fld] = $obj[$fld];
+			unset($obj[$fld]);
+		}
+	}
+	
+	count($tmpObj) && $obj[$newObjName] = $tmpObj;	
+	return $obj;
 }

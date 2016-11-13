@@ -1,0 +1,76 @@
+@CHARSET "ISO-8859-1";
+
+.container-fluid {
+	padding: 40px 0 40px 0;
+}
+
+
+#resume-container {
+	height: 100%;
+}
+
+.red-bar {
+	width: 100%;
+	height: 16px;
+	background-color: #f22;
+}
+
+.grey-bar {
+	width: 100%;
+	height: 30px;
+	background-color: #bbb;
+}
+
+.full-resume {
+	height: 100%;
+	padding: 10px 0 10px 0;
+	border: 1px solid black;
+}
+
+#resume-header-container {
+	padding: 20px 0;
+	width: 100%;
+	text-align: center;
+	border-bottom: 1px solid #aaa;
+}
+
+#resume-header {
+	margin: 0 auto;
+}
+
+#header-name {
+	font-family: 'Signika', cursive;
+	font-size: 2.2em;
+	margin-right: 20px;
+	font-style: italic;
+	font-weight: bold;
+}
+
+#header-title {
+	font-family: 'Calibri', san-serif;
+	font-size: 2em;
+	font-style: italic;
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+#pro-summary {
+	padding-top: 14px;
+}
+
+.pro-summary-title {
+	text-align: right;
+	font-size: 1.3em;
+	font-weight: bold;
+	padding: 10px 20px 0 0;
+	font-family: 'Signika', cursive;
+}
+
+.highlight-list {
+	font-family: 'Calibri', san-serif;
+	line-height: 18px;
+}
+
+.highlight-list li {
+	margin-bottom: 4px;
+}

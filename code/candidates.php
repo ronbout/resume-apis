@@ -78,6 +78,12 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	if (array_key_exists('certSkillName', $response_data))  $response_data['certSkillName'] = explode('|', $response_data['certSkillName']);
 	if (array_key_exists('edSkillName', $response_data))  $response_data['edSkillName'] = explode('|', $response_data['edSkillName']);
 
+	// TODO: create lower object for person info
+	
+	$response_data = runLowerObject( $response_data, 'person');
+	
+	// TODO:  create lower object for agency contact if it exists
+	
 	$query = 'SELECT id, highlight FROM candidatehighlights WHERE candidateId = ?';
 	
 	$highlights = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Highlights', $errCode, false, true );
