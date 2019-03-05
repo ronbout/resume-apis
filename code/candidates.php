@@ -78,14 +78,11 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	if (array_key_exists('certSkillName', $response_data))  $response_data['certSkillName'] = explode('|', $response_data['certSkillName']);
 	if (array_key_exists('edSkillName', $response_data))  $response_data['edSkillName'] = explode('|', $response_data['edSkillName']);
 
-	// TODO: create lower object for person info
-	
 	$response_data = runLowerObject( $response_data, 'person');
 	
 	// TODO:  create lower object for agency contact if it exists
 	
 	$query = 'SELECT id, highlight FROM candidatehighlights WHERE candidateId = ?';
-	
 	$highlights = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Highlights', $errCode, false, true );
 	if ($errCode) {
 		return $db;
@@ -106,19 +103,34 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 				$job_data['skillIds'] = explode('|', $job_data['skillIds']);
 				$job_data['skillNames'] = explode('|', $job_data['skillNames']);
 				$job_data['skillPcts'] = explode('|', $job_data['skillPcts']);
+				$job_data['skillTestedFlag'] = explode('|', $job_data['skillTestedFlag']);
+				$job_data['skillTestResults'] = explode('|', $job_data['skillTestResults']);
+				$job_data['skillTotalMonths'] = explode('|', $job_data['skillTotalMonths']);
+				$job_data['skillTags'] = explode('|', $job_data['skillTags']);
+				$job_data['skillTagNames'] = explode('|', $job_data['skillTagNames']);
 				$temp_skills = array();
 				foreach ( $job_data['skillIds'] as $key => $skillId) {
 					$temp_skills[] = array('SkillId' => $skillId, 
-											'skillName' => $job_data['skillNames'][$key],
-											'skillPct' => $job_data['skillPcts'][$key]);
+								'skillName' => $job_data['skillNames'][$key],
+								'skillPct' => $job_data['skillPcts'][$key],
+								'skillTested' => (array_key_exists('skillTestedFlag', $job_data)) ? $job_data['skillTestedFlag'][$key] : 0,
+								'skillTestResults' => (array_key_exists('skillTestResults', $job_data)) ? $job_data['skillTestResults'][$key] : 'NULL',
+								'skillTotalMonths' => (array_key_exists('skillTotalMonths', $job_data)) ? $job_data['skillTotalMonths'][$key] : 'NULL',
+								'skillTags' => (array_key_exists('skillTags', $job_data)) ? $job_data['skillTags'][$key] : 'NULL',
+								'skillTagNames' => (array_key_exists('skillTagNames', $job_data)) ? $job_data['skillTagNames'][$key] : 'NULL',
+								);
 				}
 				$job_data['jobSkills'] = $temp_skills;
 				unset($job_data['skillIds']);
 				unset($job_data['skillNames']);
 				unset($job_data['skillPcts']);
+				unset($job_data['skillTestedFlag']);
+				unset($job_data['skillTestResults']);
+				unset($job_data['skillTotalMonths']);
+				unset($job_data['skillTags']);
+				unset($job_data['skillTagNames']);
 			}
 			// now need to retrieve the highlights for each job
-			// TODO: retrieve highlights per job
 			$query = 'SELECT id, highlight FROM candidatejobhighlights WHERE jobId = ?';
 			$highlights = pdo_exec( $request, $response, $db, $query, array($job_data['id']), 'Retrieving Candidate Job Highlights', 
 									$errCode, false, true );
@@ -195,6 +207,9 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 		return $db;
 	}
 	$social_media && $response_data['socialMedia'] = $social_media;
+//echo var_dump($response_data);
+//die();
+	
 	
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );

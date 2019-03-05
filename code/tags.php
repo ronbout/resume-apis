@@ -24,11 +24,11 @@ $app->get('/tags', function (Request $request, Response $response) {
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$query = 'SELECT Id "id", name, description from techtags ORDER BY name ' . $limit_clause;
+	$query = 'SELECT Id "id", name, description from techtag ORDER BY name ' . $limit_clause;
 
 	if (!$result = $db->query($query)) {
 		$data['error'] = true;
-		$data['message'] = 'Database SQL Error Retrieving techtags: ' . $result->errorCode() . ' - ' . $result->errorInfo()[2];
+		$data['message'] = 'Database SQL Error Retrieving techtag: ' . $result->errorCode() . ' - ' . $result->errorInfo()[2];
 		$newResponse = $response->withJson($data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -60,11 +60,11 @@ $app->get('/tags/{id}', function (Request $request, Response $response) {
 	if ($errCode) {
 		return $db;
 	}
-	$stmt = $db->prepare('SELECT Id "id", name, description from techtags WHERE Id = ?');
+	$stmt = $db->prepare('SELECT Id "id", name, description from techtag WHERE Id = ?');
 
 	if (!$stmt->execute(array($id)) ) {
 		$data['error'] = true;
-		$data['message'] = 'Database SQL Error Retrieving techtags: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
+		$data['message'] = 'Database SQL Error Retrieving techtag: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -111,7 +111,7 @@ $app->get ( '/tags/search/{srch}', function (Request $request, Response $respons
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$stmt = $db->prepare ( 'SELECT Id "id", name, description from techtags WHERE name LIKE ? ORDER BY name ' . $limit_clause);
+	$stmt = $db->prepare ( 'SELECT Id "id", name, description from techtag WHERE name LIKE ? ORDER BY name ' . $limit_clause);
 
 	// add wildcards to search string...may be based on parameters at some point
 	// TODO: provide different types of searches with and w/o various wildcards
@@ -121,7 +121,7 @@ $app->get ( '/tags/search/{srch}', function (Request $request, Response $respons
 			$srch
 	) )) {
 		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Retrieving Techtags: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data ['message'] = 'Database SQL Error Retrieving techtag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -164,11 +164,11 @@ $app->post('/tags', function (Request $request, Response $response) {
 	}
 
 	// need to make sure that tag name does not already exist as it must be unique
-	$stmt = $db->prepare ( 'SELECT * from techtags WHERE name = ?' );
+	$stmt = $db->prepare ( 'SELECT * from techtag WHERE name = ?' );
 	
 	if (! $stmt->execute ( array ($name) )) {
 		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Accessing Techtags table: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data ['message'] = 'Database SQL Error Accessing techtag table: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -180,11 +180,11 @@ $app->post('/tags', function (Request $request, Response $response) {
 		return $newResponse;
 	}	
 	
-	$stmt = $db->prepare('INSERT INTO techtags (name, description) VALUES ( ?,? )');
+	$stmt = $db->prepare('INSERT INTO techtag (name, description) VALUES ( ?,? )');
 
 	if (!$stmt->execute(array($name, $description)) || ($stmt->rowCount() == 0) ) {
 		$data['error'] = true;
-		$data['message'] = 'Database SQL Error Inserting Techtags: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
+		$data['message'] = 'Database SQL Error Inserting techtag: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -226,11 +226,11 @@ $app->put('/tags/{id}', function (Request $request, Response $response) {
 	}
 	
 	// need to make sure that this record id exists to update
-	$stmt = $db->prepare ( 'SELECT * from techtags WHERE Id = ?' );
+	$stmt = $db->prepare ( 'SELECT * from techtag WHERE Id = ?' );
 	
 	if (! $stmt->execute ( array ($id) )) {
 		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Retrieving techtags: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data ['message'] = 'Database SQL Error Retrieving techtag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -243,7 +243,7 @@ $app->put('/tags/{id}', function (Request $request, Response $response) {
 	}
 
 	// have to build SQL based on which fields were passed in_array
-	$sql = 'UPDATE techtags SET ' . $sql_cols[0] . ' WHERE Id = ?';
+	$sql = 'UPDATE techtag SET ' . $sql_cols[0] . ' WHERE Id = ?';
 
 	$stmt = $db->prepare($sql);
 	// add id to end of execute array
@@ -251,13 +251,13 @@ $app->put('/tags/{id}', function (Request $request, Response $response) {
 
 	if (!$stmt->execute($sql_array) || ($stmt->rowCount() == 0) ) {
 		$data['error'] = true;
-		$data['message'] = 'Unable to update Techtags: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
+		$data['message'] = 'Unable to update techtag: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine.  return success
 	// let's get the full record and return it, just in case...may remove later
-	$stmt = $db->prepare('SELECT Id "id", name, description from techtags WHERE Id = ?');
+	$stmt = $db->prepare('SELECT Id "id", name, description from techtag WHERE Id = ?');
 
 	if (!$stmt->execute(array($id)) ) {
 		// had trouble retrieving full record so just return post data
@@ -292,7 +292,7 @@ $app->delete('/tags/{id}', function (Request $request, Response $response) {
 	if ($errCode) {
 		return $db;
 	}
-	$stmt = $db->prepare('DELETE FROM techtags WHERE Id = ?');
+	$stmt = $db->prepare('DELETE FROM techtag WHERE Id = ?');
 
 	if (!$stmt->execute(array($id)) || ($stmt->rowCount() == 0) ) {
 		$data['error'] = true;
@@ -337,13 +337,13 @@ $app->get('/tag_skills/{id}', function (Request $request, Response $response) {
 	}
 
 	$stmt = $db->prepare('select s.Id "id", s.name, s.description, s.url
-		FROM skill s, skill_tag st 
+		FROM skill s, skills_techtags st 
 		where st.skillId = s.Id
-		and st.tagId = ? ORDER BY s.name' . $limit_clause);
+		and st.techtagId = ? ORDER BY s.name' . $limit_clause);
 
 	if (!$stmt->execute(array($id)) ) {
 		$data['error'] = true;
-		$data['message'] = 'Database SQL Error Retrieving techtags: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
+		$data['message'] = 'Database SQL Error Retrieving techtag: ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
@@ -361,12 +361,12 @@ $app->get('/tag_skills/{id}', function (Request $request, Response $response) {
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 });
 
-$app->delete ( '/tag_skills/{tagid}/{skillid}', function (Request $request, Response $response) {
+$app->delete ( '/tag_skills/{techtagId}/{skillid}', function (Request $request, Response $response) {
 	$skillId = $request->getAttribute ( 'skillid' );
-	$tagId = $request->getAttribute('tagid');
+	$techtagId = $request->getAttribute('techtagId');
 	$data = array ();
 
-	if (! $skillId && ! $tagId ) {
+	if (! $skillId && ! $techtagId ) {
 		$data ['error'] = true;
 		$data ['message'] = "Skill and Tag ID's are required.";
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
@@ -382,22 +382,22 @@ $app->delete ( '/tag_skills/{tagid}/{skillid}', function (Request $request, Resp
 	}
 
 	if (strtolower($skillId) == 'all') {
-		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE tagId = ?' );
-		$executeArray = array( $tagId );
+		$stmt = $db->prepare ( 'DELETE FROM skills_techtags WHERE techtagId = ?' );
+		$executeArray = array( $techtagId );
 	} else {
-		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ? AND tagId = ?' );
-		$executeArray = array( $skillId, $tagId	);
+		$stmt = $db->prepare ( 'DELETE FROM skills_techtags WHERE skillId = ? AND techtagId = ?' );
+		$executeArray = array( $skillId, $techtagId	);
 	}
 
 	if (! $stmt->execute ( $executeArray ) || ($stmt->rowCount () == 0 && strtolower($skillId) != 'all')) {
 		$data ['error'] = true;
-		$data ['message'] = 'Unable to delete Skill_Tag ' . $skillId . '-' . $tagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data ['message'] = 'Unable to delete skills_techtags ' . $skillId . '-' . $techtagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
 	$data ['error'] = false;
-	$data ['message'] = 'Skill_Tag successfully deleted';
+	$data ['message'] = 'skills_techtags successfully deleted';
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
@@ -406,12 +406,12 @@ $app->post ( '/tag_skills', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
 	// echo 'post data skill id: ', var_dump($post_data['skillid']);
-	// echo 'post data tag ids: ', var_dump($post_data['tagids']);
+	// echo 'post data tag ids: ', var_dump($post_data['techtagIds']);
 	// die();
 	$skillIds = isset ( $post_data ['skillids'] ) ? filter_var_array ( $post_data ['skillids'], FILTER_SANITIZE_STRING ) : null;
-	$tagId = isset ( $post_data ['tagid'] ) ? filter_var ( $post_data ['tagid'], FILTER_SANITIZE_STRING ) : null;
+	$techtagId = isset ( $post_data ['techtagId'] ) ? filter_var ( $post_data ['techtagId'], FILTER_SANITIZE_STRING ) : null;
 
-	if (! $skillIds || ! $tagId ) {
+	if (! $skillIds || ! $techtagId ) {
 		$data ['error'] = true;
 		$data ['message'] = 'Tag id and Skill ids are required.';
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
@@ -426,14 +426,14 @@ $app->post ( '/tag_skills', function (Request $request, Response $response) {
 		return $db;
 	}
 
-	$stmt = $db->prepare ( 'INSERT IGNORE INTO skill_tag (skillid, tagid ) VALUES ( ?,? )' );
+	$stmt = $db->prepare ( 'INSERT IGNORE INTO skills_techtags (skillid, techtagId ) VALUES ( ?,? )' );
 
-	// loop through the array of tagIds
+	// loop through the array of techtagIds
 	foreach($skillIds as $skillId) {
 
-		if (! $stmt->execute (array ( $skillId, $tagId )) || ($stmt->rowCount () == 0)) {
+		if (! $stmt->execute (array ( $skillId, $techtagId )) || ($stmt->rowCount () == 0)) {
 			$data ['error'] = true;
-			$data ['message'] = 'Database SQL Error Inserting Skill_Tag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+			$data ['message'] = 'Database SQL Error Inserting skills_techtags: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 			$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 			return $newResponse;
 		}
@@ -441,7 +441,7 @@ $app->post ( '/tag_skills', function (Request $request, Response $response) {
 
 	// everything was fine. return success
 	$data ['error'] = false;
-	$data ['message'] = 'Skill_Tags successfully created';
+	$data ['message'] = 'skills_techtags successfully created';
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );

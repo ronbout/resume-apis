@@ -84,7 +84,7 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 		return $db;
 	}
 
-	// need to make sure that skill name does not already exist as it must be unique
+/* 	// need to make sure that skill name does not already exist as it must be unique
 	$stmt = $db->prepare ( 'SELECT * from skill WHERE name = ?' );
 
 	if (! $stmt->execute ( array ($name) )) {
@@ -101,7 +101,7 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 
-	$stmt = $db->prepare ( 'INSERT INTO skill (name, description, url) VALUES ( ?,?,? )' );
+	$stmt = $db->prepare ( 'INSERT INTO skill (name, description, url) VALUES ( ?,?,? )' ); 
 
 	if (! $stmt->execute ( array (
 			$name,
@@ -112,7 +112,7 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 		$data ['message'] = 'Database SQL Error Inserting Skill: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
-	}
+	}*/
 	// everything was fine. return success
 	$data ['id'] = $db->lastInsertId ();
 	$data ['name'] = $name;

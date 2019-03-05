@@ -320,7 +320,7 @@ $app->delete ( '/skills/{id}', function (Request $request, Response $response) {
 	return $newResponse;
 } );
 
-$app->get ( '/skill_tags/{id}', function (Request $request, Response $response) {
+$app->get ( '/skill_techtags/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute ( 'id' );
 	$data = array ();
 
@@ -349,8 +349,8 @@ $app->get ( '/skill_tags/{id}', function (Request $request, Response $response) 
 	}
 
 	$stmt = $db->prepare ( 'select t.Id "id" , t.name, t.description
-	FROM techtags t, skill_tag st
-	where st.tagId = t.Id
+	FROM techtag t, skills_techtags st
+	where st.techtagId = t.Id
 	and st.skillId = ? ORDER BY t.name' . $limit_clause);
 
 	if (! $stmt->execute ( array ($id) )) {
@@ -373,12 +373,12 @@ $app->get ( '/skill_tags/{id}', function (Request $request, Response $response) 
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
-$app->delete ( '/skill_tags/{skillid}/{tagid}', function (Request $request, Response $response) {
+$app->delete ( '/skill_techtags/{skillid}/{techtagId}', function (Request $request, Response $response) {
 	$skillId = $request->getAttribute ( 'skillid' );
-	$tagId = $request->getAttribute('tagid');
+	$techtagId = $request->getAttribute('techtagId');
 	$data = array ();
 
-	if (! $skillId && ! $tagId ) {
+	if (! $skillId && ! $techtagId ) {
 		$data ['error'] = true;
 		$data ['message'] = "Skill and Tag ID's are required.";
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
@@ -393,37 +393,37 @@ $app->delete ( '/skill_tags/{skillid}/{tagid}', function (Request $request, Resp
 		return $db;
 	}
 	
-	if (strtolower($tagId) == 'all') {
-		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ?' );
+	if (strtolower($techtagId) == 'all') {
+		$stmt = $db->prepare ( 'DELETE FROM skills_techtags WHERE skillId = ?' );
 		$executeArray = array( $skillId );
 	} else {
-		$stmt = $db->prepare ( 'DELETE FROM skill_tag WHERE skillId = ? AND tagId = ?' );
-		$executeArray = array( $skillId, $tagId	);
+		$stmt = $db->prepare ( 'DELETE FROM skills_techtags WHERE skillId = ? AND techtagId = ?' );
+		$executeArray = array( $skillId, $techtagId	);
 	}
 
-	if (! $stmt->execute ( $executeArray ) || ($stmt->rowCount () == 0 && strtolower($tagId) != 'all')) {
+	if (! $stmt->execute ( $executeArray ) || ($stmt->rowCount () == 0 && strtolower($techtagId) != 'all')) {
 		$data ['error'] = true;
-		$data ['message'] = 'Unable to delete Skill_Tag ' . $skillId . '-' . $tagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data ['message'] = 'Unable to delete skills_techtags ' . $skillId . '-' . $techtagId .' : ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	// everything was fine. return success
 	$data ['error'] = false;
-	$data ['message'] = 'Skill_Tag successfully deleted';
+	$data ['message'] = 'skills_techtags successfully deleted';
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
 
-$app->post ( '/skill_tags', function (Request $request, Response $response) {
+$app->post ( '/skill_techtags', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
 // echo 'post data skill id: ', var_dump($post_data['skillid']);
-// echo 'post data tag ids: ', var_dump($post_data['tagids']);
+// echo 'post data tag ids: ', var_dump($post_data['techtagIds']);
 // die();
 	$skillId = isset ( $post_data ['skillid'] ) ? filter_var ( $post_data ['skillid'], FILTER_SANITIZE_STRING ) : null;
-	$tagIds = isset ( $post_data ['tagids'] ) ? filter_var_array ( $post_data ['tagids'], FILTER_SANITIZE_STRING ) : null;
+	$techtagIds = isset ( $post_data ['techtagIds'] ) ? filter_var_array ( $post_data ['techtagIds'], FILTER_SANITIZE_STRING ) : null;
 
-	if (! $skillId || ! $tagIds ) {
+	if (! $skillId || ! $techtagIds ) {
 		$data ['error'] = true;
 		$data ['message'] = 'Skill id and Tag ids are required.';
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
@@ -438,14 +438,14 @@ $app->post ( '/skill_tags', function (Request $request, Response $response) {
 		return $db;
 	}
 
-	$stmt = $db->prepare ( 'INSERT IGNORE INTO skill_tag (skillid, tagid ) VALUES ( ?,? )' );
+	$stmt = $db->prepare ( 'INSERT IGNORE INTO skills_techtags (skillid, techtagId ) VALUES ( ?,? )' );
 
-	// loop through the array of tagIds
-	foreach($tagIds as $tagId) {
+	// loop through the array of techtagIds
+	foreach($techtagIds as $techtagId) {
 
-		if (! $stmt->execute (array ( $skillId, $tagId )) || ($stmt->rowCount () == 0)) {
+		if (! $stmt->execute (array ( $skillId, $techtagId )) || ($stmt->rowCount () == 0)) {
 			$data ['error'] = true;
-			$data ['message'] = 'Database SQL Error Inserting Skill_Tag: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+			$data ['message'] = 'Database SQL Error Inserting skills_techtags: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
 			$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 			return $newResponse;
 		}
@@ -453,7 +453,7 @@ $app->post ( '/skill_tags', function (Request $request, Response $response) {
 
 	// everything was fine. return success
 	$data ['error'] = false;
-	$data ['message'] = 'Skill_Tags successfully created';
+	$data ['message'] = 'skills_techtagss successfully created';
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
