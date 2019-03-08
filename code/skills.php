@@ -147,6 +147,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	$name = isset ( $post_data ['name'] ) ? filter_var ( $post_data ['name'], FILTER_SANITIZE_STRING ) : null;
 	$description = isset ( $post_data ['description'] ) ? filter_var ( $post_data ['description'], FILTER_SANITIZE_STRING ) : null;
 	$url = isset ( $post_data ['url'] ) ? filter_var ( $post_data ['url'], FILTER_SANITIZE_STRING ) : null;
+	$techtags = isset($post_data['techtags']) ? $post_data['techtags'] : array();
 	
 	if (! $name) {
 		$data ['error'] = true;
@@ -175,6 +176,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	
 	if (($stmt->rowCount())) {
 		$data ['error'] = true;
+		$data['errorCode'] = 45001; // just a custom error for duplicate value
 		$data ['message'] = "Skill $name already exists";
 		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
@@ -192,8 +194,32 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
+
+	// get new skill id to use for skill_techtags insert
+	$skill_id = $db->lastInsertId ();
+
+	// add skill techtags if they exist
+	if (count($techtags) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skills_techtags VALUES ';
+		foreach($techtags as $tag) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $skill_id;
+			$insert_data[] = $tag['id'];
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Skill Techtags', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
 	// everything was fine. return success
-	$data ['id'] = $db->lastInsertId ();
+	$data ['id'] = $skill_id;
 	$data ['name'] = $name;
 	$data ['description'] = $description;
 	$data ['url'] = $url;
@@ -227,6 +253,9 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
+	
+	// this api assumes that techtags are always included, if they exist.
+	$techtags = isset($post_data['techtags']) ? $post_data['techtags'] : array();
 	
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
@@ -266,6 +295,35 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
+
+	// update techtags, delete original and create new ones
+	$query = 'DELETE FROM skills_techtags 
+						WHERE skillId = ?';
+
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Deleting Skill Techtags', $errCode, false, false, false );
+	if ($errCode) {
+		return $response_data;
+	}
+
+	if (count($techtags) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skills_techtags VALUES ';
+		foreach($techtags as $tag) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $id;
+			$insert_data[] = $tag['id'];
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Skill Techtags', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
 	// everything was fine. return success
 	// let's get the full record and return it, just in case...may remove later
 	$stmt = $db->prepare ( 'SELECT Id "id", name, description, url from skill WHERE Id = ?' );

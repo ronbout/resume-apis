@@ -146,20 +146,25 @@ function pdoConnect($companyCode, &$errorCode, $apiKeySent) {
 	return $cn;
 }
 
-function pdo_exec( Request $request, Response $response, $db, $query, $execArray, $errMsg, &$errCode, $checkCount = false, $ret_array = false ) {
+function pdo_exec( Request $request, Response $response, $db, $query, $execArray, $errMsg, &$errCode, $checkCount = false, $ret_array_flg = false, $return_flg = true ) {
 	$stmt = $db->prepare ( $query );
+	$data = array();
 	
 	if (! $stmt->execute ( $execArray )) {
 		$errCode = true;
 		$data ['error'] = true;
+		$data ['errorCode'] = $stmt->errorCode();
 		$data ['message'] = 'Database SQL Error ' . $errMsg . ' ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
+		$data = array('data' => $data);
 		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
-	if ( $stmt->rowCount () == 0) {
+	// the stmt rowCount only matters if we are supposed to return a value
+	if ( $stmt->rowCount () == 0 && ($ret_array_flg || $return_flg)) {
 		if ( $checkCount ) {
 			$errCode = true;
+			$data = array();
 			$data ['error'] = false;
 			$data ['message'] = 'No records Found';
 			$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
@@ -169,7 +174,7 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 		}
 	}
 	
-	if ( $ret_array ) {
+	if ( $ret_array_flg ) {
 		$ret_data = array();
 		while ( ($info = $stmt->fetch ( PDO::FETCH_ASSOC )) ) {
 			$ret_data [] = array_filter($info, function($val) {
@@ -177,10 +182,12 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 			});;
 		}
 		return $ret_data;
-	} else {
+	} elseif ($return_flg) {
 		return array_filter($stmt->fetch ( PDO::FETCH_ASSOC ), function($val) {
 			return $val !== null;
 		});;
+	} else {
+		return true;
 	}
 }
 
