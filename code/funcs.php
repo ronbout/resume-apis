@@ -5,8 +5,12 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 
 function get_pass_info($companyCode) {
-	return @file('C:\Users\ron\Documents\passwords\apis\\'.$companyCode.".txt");
-	//return @file('/var/www/passwords/apis/'.$companyCode.".txt");
+	
+	$passfile = ($_SERVER['HTTP_HOST'] == 'localhost') ? 
+			'C:\Users\ron\Documents\passwords\apis\\'.$companyCode.".txt" 
+			: '../passwords/apis/'.$companyCode.".txt";
+
+	return @file($passfile);
 }
 
 
@@ -127,6 +131,7 @@ function pdoConnect($companyCode, &$errorCode, $apiKeySent) {
 	$password = trim($passInfo[1]);
 	$db = trim($passInfo[2]);
 	$apiKey = trim($passInfo[3]);
+	$host = trim($passInfo[4]);
 	
 	if ( $apiKey != $apiKeySent ) {
 		$errorCode = -2; // error code -2 invalid api key
@@ -138,7 +143,7 @@ function pdoConnect($companyCode, &$errorCode, $apiKeySent) {
 		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
 	);
     try {
-        $cn = new PDO('mysql:dbname=' . $db . ';host=127.0.0.1', $user, $password, $opts);
+        $cn = new PDO('mysql:dbname=' . $db . ';host=' . $host, $user, $password, $opts);
     } catch (PDOException $e) {
         $errorCode = $e->getMessage();
         return false;
