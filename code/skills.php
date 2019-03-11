@@ -84,6 +84,22 @@ $app->get ( '/skills/{id}', function (Request $request, Response $response) {
 	}
 
 	$response_data['techtags'] = $tag_data;
+
+	// get the Parent Skills
+	$parent_data = get_parent_skills($request, $response, $db, $id, $errCode, false);
+	if ($errCode) {
+		return $tag_data;
+	}
+
+	$response_data['parentSkills'] = $parent_data;
+
+	// get the Child Skills
+	$child_data = get_child_skills($request, $response, $db, $id, $errCode, false);
+	if ($errCode) {
+		return $tag_data;
+	}
+
+	$response_data['childSkills'] = $child_data;
 	
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
@@ -497,6 +513,63 @@ $app->post ( '/skill_techtags', function (Request $request, Response $response) 
 	return $newResponse;
 } );
 
+
+$app->get ( '/skill_parentskills/{id}', function (Request $request, Response $response) {
+	$id = $request->getAttribute ( 'id' );
+	$data = array ();
+
+	if (! $id) {
+		$data ['error'] = true;
+		$data ['message'] = 'Id is required.';
+		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	$response_data = get_parent_skills($request, $response, $db, $id, $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$data = array (	'data' => $response_data);
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
+$app->get ( '/skill_childskills/{id}', function (Request $request, Response $response) {
+	$id = $request->getAttribute ( 'id' );
+	$data = array ();
+
+	if (! $id) {
+		$data ['error'] = true;
+		$data ['message'] = 'Id is required.';
+		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	$response_data = get_parent_skills($request, $response, $db, $id, $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$data = array (	'data' => $response_data);
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
 /**
  * subroutine for getting techtags for a single skill
  * which is used in two api endpoints (skill and skill_techtags)
@@ -517,5 +590,51 @@ function get_skill_techtags($request, $response, $db, $skill_id, &$errCode=0, $c
 						WHERE st.techtagId = t.Id
 							AND st.skillId = ? 
 						ORDER BY t.name' . $limit_clause;
+	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
+}
+
+/**
+ * subroutine for getting techtags for a single skill
+ * which is used in two api endpoints (skill and skill_techtags)
+ */
+function get_parent_skills($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
+	// check for offset and limit and add to Select
+	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	$limit_clause = '';
+	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	}
+	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	}
+
+	$query = 'SELECT s.id , s.name, s.description
+						FROM skill_relations sr, skill s
+						WHERE sr.parentSkillId = s.id
+							AND sr.childSkillId = ? 
+						ORDER BY s.name' . $limit_clause;
+	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
+}
+
+/**
+ * subroutine for getting techtags for a single skill
+ * which is used in two api endpoints (skill and skill_techtags)
+ */
+function get_child_skills($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
+	// check for offset and limit and add to Select
+	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	$limit_clause = '';
+	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	}
+	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	}
+
+	$query = 'SELECT s.id , s.name, s.description
+						FROM skill_relations sr, skill s
+						WHERE sr.childSkillId = s.id
+							AND sr.parentSkillId = ? 
+						ORDER BY s.name' . $limit_clause;
 	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
 }
