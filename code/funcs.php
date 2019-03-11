@@ -146,7 +146,7 @@ function pdoConnect($companyCode, &$errorCode, $apiKeySent) {
 	return $cn;
 }
 
-function pdo_exec( Request $request, Response $response, $db, $query, $execArray, $errMsg, &$errCode, $checkCount = false, $ret_array_flg = false, $return_flg = true ) {
+function pdo_exec( Request $request, Response $response, $db, $query, $execArray, $errMsg, &$errCode, $checkCount = false, $ret_array_flg = false, $return_flg = true, $filter_flg = true ) {
 	$stmt = $db->prepare ( $query );
 	$data = array();
 	
@@ -166,9 +166,12 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 			$errCode = true;
 			$data = array();
 			$data ['error'] = false;
+			$data ['errorCode'] = 45002;  // this will just be our error code for Not Found
 			$data ['message'] = 'No records Found';
 			$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 			return $newResponse;
+		} elseif ($ret_array_flg) {
+			return array();
 		} else {
 			return null;
 		}
@@ -177,14 +180,14 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 	if ( $ret_array_flg ) {
 		$ret_data = array();
 		while ( ($info = $stmt->fetch ( PDO::FETCH_ASSOC )) ) {
-			$ret_data [] = array_filter($info, function($val) {
-				return $val !== null;
+			$ret_data [] = array_filter($info, function($val) use ($filter_flg) {
+				return !($filter_flg) || $val !== null;
 			});;
 		}
 		return $ret_data;
 	} elseif ($return_flg) {
-		return array_filter($stmt->fetch ( PDO::FETCH_ASSOC ), function($val) {
-			return $val !== null;
+		return array_filter($stmt->fetch ( PDO::FETCH_ASSOC ), function($val) use ($filter_flg) {
+			return !$filter_flg || $val !== null;
 		});;
 	} else {
 		return true;

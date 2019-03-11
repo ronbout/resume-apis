@@ -76,6 +76,14 @@ $app->get ( '/skills/{id}', function (Request $request, Response $response) {
 	}
 	
 	$response_data = $stmt->fetch ( PDO::FETCH_ASSOC );
+
+	// get the related Techtags
+	$tag_data = get_skill_techtags($request, $response, $db, $id, $errCode, false);
+	if ($errCode) {
+		return $tag_data;
+	}
+
+	$response_data['techtags'] = $tag_data;
 	
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
@@ -396,36 +404,11 @@ $app->get ( '/skill_techtags/{id}', function (Request $request, Response $respon
 	if ($errCode) {
 		return $db;
 	}
-	// check for offset and limit and add to Select
-	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
-	$limit_clause = '';
-	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
-		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
-	}
-	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
-		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
-	}
 
-	$stmt = $db->prepare ( 'select t.Id "id" , t.name, t.description
-	FROM techtag t, skills_techtags st
-	where st.techtagId = t.Id
-	and st.skillId = ? ORDER BY t.name' . $limit_clause);
-
-	if (! $stmt->execute ( array ($id) )) {
-		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Retrieving Skills: ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
-		return $newResponse;
+	$response_data = get_skill_techtags($request, $response, $db, $id, $errCode, true);
+	if ($errCode) {
+		return $response_data;
 	}
-
-	if (($stmt->rowCount () == 0)) {
-		$data ['error'] = false;
-		$data ['message'] = 'No records Found';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-		return $newResponse;
-	}
-
-	$response_data = $stmt->fetchAll ( PDO::FETCH_ASSOC );
 
 	$data = array (	'data' => $response_data);
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
@@ -475,9 +458,7 @@ $app->delete ( '/skill_techtags/{skillid}/{techtagId}', function (Request $reque
 $app->post ( '/skill_techtags', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
-// echo 'post data skill id: ', var_dump($post_data['skillid']);
-// echo 'post data tag ids: ', var_dump($post_data['techtagIds']);
-// die();
+
 	$skillId = isset ( $post_data ['skillid'] ) ? filter_var ( $post_data ['skillid'], FILTER_SANITIZE_STRING ) : null;
 	$techtagIds = isset ( $post_data ['techtagIds'] ) ? filter_var_array ( $post_data ['techtagIds'], FILTER_SANITIZE_STRING ) : null;
 
@@ -515,3 +496,26 @@ $app->post ( '/skill_techtags', function (Request $request, Response $response) 
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
+
+/**
+ * subroutine for getting techtags for a single skill
+ * which is used in two api endpoints (skill and skill_techtags)
+ */
+function get_skill_techtags($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
+	// check for offset and limit and add to Select
+	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	$limit_clause = '';
+	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	}
+	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	}
+
+	$query = 'SELECT t.Id "id" , t.name, t.description
+						FROM techtag t, skills_techtags st
+						WHERE st.techtagId = t.Id
+							AND st.skillId = ? 
+						ORDER BY t.name' . $limit_clause;
+	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
+}

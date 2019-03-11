@@ -3,7 +3,7 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
-$app->get('/tags', function (Request $request, Response $response) {
+$app->get('/techtags', function (Request $request, Response $response) {
 	$data = array();
 
 	// login to the database.  if unsuccessful, the return value is the
@@ -42,7 +42,7 @@ $app->get('/tags', function (Request $request, Response $response) {
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 });
 
-$app->get('/tags/{id}', function (Request $request, Response $response) {
+$app->get('/techtags/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute('id');
 	$data = array();
 
@@ -82,7 +82,7 @@ $app->get('/tags/{id}', function (Request $request, Response $response) {
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 });
 
-$app->get ( '/tags/search/{srch}', function (Request $request, Response $response) {
+$app->get ( '/techtags/search/{srch}', function (Request $request, Response $response) {
 	$srch = $request->getAttribute ( 'srch' );
 	$data = array ();
 
@@ -141,7 +141,7 @@ $app->get ( '/tags/search/{srch}', function (Request $request, Response $respons
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 });
 
-$app->post('/tags', function (Request $request, Response $response) {
+$app->post('/techtags', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody();
 	$data = array();
 
@@ -198,7 +198,7 @@ $app->post('/tags', function (Request $request, Response $response) {
 	return $newResponse;
 });
 
-$app->put('/tags/{id}', function (Request $request, Response $response) {
+$app->put('/techtags/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute('id');
 	$post_data = $request->getParsedBody();
 	$data = array();
@@ -274,7 +274,7 @@ $app->put('/tags/{id}', function (Request $request, Response $response) {
 	return $newResponse;
 });
 
-$app->delete('/tags/{id}', function (Request $request, Response $response) {
+$app->delete('/techtags/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute('id');
 	$data = array();
 
@@ -307,7 +307,7 @@ $app->delete('/tags/{id}', function (Request $request, Response $response) {
 	return $newResponse;
 });
 
-$app->get('/tag_skills/{id}', function (Request $request, Response $response) {
+$app->get('/techtag_skills/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute('id');
 	$data = array();
 
@@ -361,7 +361,7 @@ $app->get('/tag_skills/{id}', function (Request $request, Response $response) {
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 });
 
-$app->delete ( '/tag_skills/{techtagId}/{skillid}', function (Request $request, Response $response) {
+$app->delete ( '/techtag_skills/{techtagId}/{skillid}', function (Request $request, Response $response) {
 	$skillId = $request->getAttribute ( 'skillid' );
 	$techtagId = $request->getAttribute('techtagId');
 	$data = array ();
@@ -402,7 +402,7 @@ $app->delete ( '/tag_skills/{techtagId}/{skillid}', function (Request $request, 
 	return $newResponse;
 } );
 
-$app->post ( '/tag_skills', function (Request $request, Response $response) {
+$app->post ( '/techtag_skills', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
 	// echo 'post data skill id: ', var_dump($post_data['skillid']);
