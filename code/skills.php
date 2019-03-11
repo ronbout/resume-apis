@@ -561,7 +561,7 @@ $app->get ( '/skill_childskills/{id}', function (Request $request, Response $res
 		return $db;
 	}
 
-	$response_data = get_parent_skills($request, $response, $db, $id, $errCode, true);
+	$response_data = get_child_skills($request, $response, $db, $id, $errCode, true);
 	if ($errCode) {
 		return $response_data;
 	}
