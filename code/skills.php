@@ -574,46 +574,40 @@ $app->get ( '/skill_childskills/{id}', function (Request $request, Response $res
  * subroutine for getting techtags for a single skill
  * which is used in two api endpoints (skill and skill_techtags)
  */
-function get_skill_techtags($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
-	// check for offset and limit and add to Select
-	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
-	$limit_clause = '';
-	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
-		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
-	}
-	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
-		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
-	}
+function get_skill_techtags($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {	
 
-	$query = 'SELECT t.Id "id" , t.name, t.description
-						FROM techtag t, skills_techtags st
-						WHERE st.techtagId = t.Id
-							AND st.skillId = ? 
-						ORDER BY t.name' . $limit_clause;
-	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
-}
+	$parms = array();
+	$parms['main_id'] = $skill_id;
+	$parms['rel_table'] = 'skills_techtags';
+	$parms['rel_main_id'] = 'skillId';
+	$parms['rel_secondary_id'] = 'techtagId';
+	$parms['disp_table'] = 'techtag';
+	$parms['disp_table_id'] = 'id';
+	$parms['disp_fields'] = array( 'id', 'name', 'description'	);
+	$parms['order_name'] = 'name';
+
+	return get_one_to_many($request, $response, $db, $parms, $errCode, false);
+
+} 
 
 /**
  * subroutine for getting techtags for a single skill
  * which is used in two api endpoints (skill and skill_techtags)
  */
 function get_parent_skills($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
-	// check for offset and limit and add to Select
-	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
-	$limit_clause = '';
-	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
-		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
-	}
-	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
-		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
-	}
 
-	$query = 'SELECT s.id , s.name, s.description
-						FROM skill_relations sr, skill s
-						WHERE sr.parentSkillId = s.id
-							AND sr.childSkillId = ? 
-						ORDER BY s.name' . $limit_clause;
-	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
+	$parms = array();
+	$parms['main_id'] = $skill_id;
+	$parms['rel_table'] = 'skill_relations';
+	$parms['rel_main_id'] = 'childSkillId';
+	$parms['rel_secondary_id'] = 'parentSkillId';
+	$parms['disp_table'] = 'skill';
+	$parms['disp_table_id'] = 'id';
+	$parms['disp_fields'] = array( 'id', 'name', 'description'	);
+	$parms['order_name'] = 'name';
+
+	return get_one_to_many($request, $response, $db, $parms, $errCode, false);
+
 }
 
 /**
@@ -621,6 +615,38 @@ function get_parent_skills($request, $response, $db, $skill_id, &$errCode=0, $ch
  * which is used in two api endpoints (skill and skill_techtags)
  */
 function get_child_skills($request, $response, $db, $skill_id, &$errCode=0, $check_count = false) {
+
+	$parms = array();
+	$parms['main_id'] = $skill_id;
+	$parms['rel_table'] = 'skill_relations';
+	$parms['rel_main_id'] = 'parentSkillId';
+	$parms['rel_secondary_id'] = 'childSkillId';
+	$parms['disp_table'] = 'skill';
+	$parms['disp_table_id'] = 'id';
+	$parms['disp_fields'] = array( 'id', 'name', 'description'	);
+	$parms['order_name'] = 'name';
+
+	return get_one_to_many($request, $response, $db, $parms, $errCode, false);
+}
+
+
+/**
+ * subroutine for getting data from a one to many relationship
+ * need to pass in relation table, fields to select on and
+ * fields to retrieve (i.e. techtags need to get info from techtag)
+ * parms : 
+ * 0 - main_id value
+ * 1 - rel_table name
+ * 2 - rel_main_id name
+ * 3 - rel_secondary_id name
+ * 4 - disp_table name
+ * 5 - disp_table_id name
+ * 6 - disp_fields array of field names
+ * 7 - order_name
+ */
+function get_one_to_many($request, $response, $db, $parms, &$errCode=0, $check_count = false) {
+	extract($parms);
+
 	// check for offset and limit and add to Select
 	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
 	$limit_clause = '';
@@ -631,10 +657,19 @@ function get_child_skills($request, $response, $db, $skill_id, &$errCode=0, $che
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$query = 'SELECT s.id , s.name, s.description
-						FROM skill_relations sr, skill s
-						WHERE sr.childSkillId = s.id
-							AND sr.parentSkillId = ? 
-						ORDER BY s.name' . $limit_clause;
-	return pdo_exec( $request, $response, $db, $query, array($skill_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
+	$display_fields_sql = '';
+	foreach($disp_fields as $fname) {
+		$display_fields_sql .= ' dt.' . $fname . ',';
+	}
+	// have to remove final comma
+	$display_fields_sql = trim($display_fields_sql, ',');
+
+
+	$query = 'SELECT ' . $display_fields_sql . '
+						FROM ' . $rel_table . ' rt, ' . $disp_table . ' dt
+						WHERE rt.' . $rel_secondary_id . ' = dt.' . $disp_table_id . '
+							AND rt.' . $rel_main_id . ' = ? 
+						ORDER BY dt.' . $order_name . $limit_clause;
+				
+	return pdo_exec( $request, $response, $db, $query, array($main_id), 'Retrieving Skill Techtags', $errCode, $check_count, true, true, false );	
 }
