@@ -172,6 +172,8 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	$description = isset ( $post_data ['description'] ) ? filter_var ( $post_data ['description'], FILTER_SANITIZE_STRING ) : null;
 	$url = isset ( $post_data ['url'] ) ? filter_var ( $post_data ['url'], FILTER_SANITIZE_STRING ) : null;
 	$techtags = isset($post_data['techtags']) ? $post_data['techtags'] : array();
+	$parent_skills = isset($post_data['parentSkills']) ? $post_data['parentSkills'] : array();
+	$child_skills = isset($post_data['childSkills']) ? $post_data['childSkills'] : array();
 	
 	if (! $name) {
 		$data ['error'] = true;
@@ -219,7 +221,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 
-	// get new skill id to use for skill_techtags insert
+	// get new skill id to use for related inserts
 	$skill_id = $db->lastInsertId ();
 
 	// add skill techtags if they exist
@@ -237,6 +239,50 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 		$query = trim($query, ',');
 	
 		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Skill Techtags', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
+	// add parent skills to skill_relations if they exist
+	if (count($parent_skills) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skill_relations 
+							(parentSkillId, childSkillId) 
+							VALUES ';
+		foreach($parent_skills as $pskill) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $pskill['id'];
+			$insert_data[] = $skill_id;
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Parent Skills', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
+	// add child skills to skill_relations 
+	if (count($child_skills) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skill_relations 
+							(parentSkillId, childSkillId) 
+							VALUES ';
+		foreach($child_skills as $cskill) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $skill_id;
+			$insert_data[] = $cskill['id'];
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Child Skills', $errCode, false, false, false );
 		if ($errCode) {
 			return $response_data;
 		}
@@ -278,8 +324,10 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 	
-	// this api assumes that techtags are always included, if they exist.
+	// this api assumes that techtags and skill relations are always included, if they exist.
 	$techtags = isset($post_data['techtags']) ? $post_data['techtags'] : array();
+	$parent_skills = isset($post_data['parentSkills']) ? $post_data['parentSkills'] : array();
+	$child_skills = isset($post_data['childSkills']) ? $post_data['childSkills'] : array();
 	
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
@@ -343,6 +391,61 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 		$query = trim($query, ',');
 	
 		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Skill Techtags', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
+
+	// remove all skill relations, both parent and child in one SQL
+	$query = 'DELETE FROM skill_relations 
+	WHERE childSkillId = ?
+	OR parentSkillId = ?';
+
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id, $id), 'Deleting Skill Relations', $errCode, false, false, false );
+	if ($errCode) {
+		return $response_data;
+	}
+	
+	// update parent skills to skill_relations 
+	if (count($parent_skills) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skill_relations 
+							(parentSkillId, childSkillId) 
+							VALUES ';
+		foreach($parent_skills as $pskill) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $pskill['id'];
+			$insert_data[] = $id;
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Parent Skills', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
+	// update child skills to skill_relations 
+	if (count($child_skills) ) {
+		$insert_data = array();
+
+		$query = 'INSERT INTO skill_relations 
+							(parentSkillId, childSkillId) 
+							VALUES ';
+		foreach($child_skills as $cskill) {
+			$query .= ' (?, ?),';
+			$insert_data[] = $id;
+			$insert_data[] = $cskill['id'];
+		}
+		
+		// have to remove final comma
+		$query = trim($query, ',');
+	
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Child Skills', $errCode, false, false, false );
 		if ($errCode) {
 			return $response_data;
 		}
