@@ -109,6 +109,10 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 	$srch = $request->getAttribute ( 'srch' );
 	$data = array ();
 
+	$query = $request->getQueryParams();
+	
+	$techtag_id = isset ($query['techtag']) ? filter_var ( $query['techtag'] ) : '';
+
 	if (! $srch) {
 		$data ['error'] = true;
 		$data ['message'] = 'Search field is required.';
@@ -134,7 +138,21 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$stmt = $db->prepare ( 'SELECT Id "id", name, description, url from skill WHERE name LIKE ? ORDER BY name ' . $limit_clause);
+	if ($techtag_id !== '') {
+		$query = 'SELECT s.id, s.name, s.description, s.url 
+		FROM skill s, skills_techtags st
+		WHERE name LIKE ? 
+		AND s.id = st.SkillId
+		AND st.techtagId = ' . $techtag_id . '
+		ORDER BY name ';
+	} else {
+		$query = 'SELECT id, name, description, url 
+							FROM skill 
+							WHERE name LIKE ? 
+							ORDER BY name ';
+	}
+
+	$stmt = $db->prepare ($query . $limit_clause);
 
 	// add wildcards to search string...may be based on parameters at some point
 	// TODO: provide different types of searches with and w/o various wildcards
