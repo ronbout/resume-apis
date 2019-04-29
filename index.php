@@ -26,4 +26,5 @@ require_once('code/skills.php');
 require_once('code/companyconfig.php');
 require_once('code/candidates.php');
 require_once('code/company.php');
+require_once('code/persons.php');
 $app->run();
