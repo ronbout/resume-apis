@@ -12,6 +12,11 @@ use \Psr\Http\Message\ResponseInterface as Response;
  */
 $app->get ( '/members', function (Request $request, Response $response) {
 	$data = array ();
+	// social array is the list of possible social media logins
+	// right now, we have google and github.  this will be stored in
+	// the password field.  This will give better error messages when
+	// the user logins using a different method than they registered.
+	$social_array = array('google', 'github');
 
 	// check for password being sent
 	$getquery = $request->getQueryParams();
@@ -22,7 +27,7 @@ $app->get ( '/members', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 
-	$password = $getquery['password'];
+	$password = trim($getquery['password']);
 	$email = $getquery['email'];
 
 	// login to the database. if unsuccessful, the return value is the
@@ -42,13 +47,30 @@ $app->get ( '/members', function (Request $request, Response $response) {
 	}
 	
 	$response_data['fullName'] =  html_entity_decode($response_data['fullName'], ENT_QUOTES);
+	$db_password = $response_data['password'];
+
+	// check password if social login as they must match
+	// i.e. google must have registered with google 
+	if (in_array($password, $social_array) && $password != $db_password) {
+		$data['error'] = true;
+		if (in_array($db_password, $social_array)) {
+			$data ['message'] = "User registered with " . ucfirst($db_password) . " login.";
+		} else {
+			$data['message'] = "User registered by email and must login with email / password.";
+		}
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
 
 	// check password if not social login
-	// social logins are already password protected
-	if ($password != 'social' && md5(trim($password)) != $response_data['password']) {
+	if (!in_array($password, $social_array) && md5(trim($password)) != $db_password) {
 		$data ['error'] = true;
-		$data ['message'] = 'Incorrect password ';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		if (in_array($db_password, $social_array)) {
+			$data ['message'] = "User registered with " . ucfirst($db_password) . " login.";
+		} else {
+			$data['message'] = "Incorrect password.";
+		}
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
