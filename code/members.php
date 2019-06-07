@@ -23,7 +23,7 @@ $app->get ( '/members', function (Request $request, Response $response) {
 	if (  !isset($getquery['password']) || !isset($getquery['email']) ) {
 		$data['error'] = true;
 		$data['message'] = 'Password and email parameters are required.';
-		$newResponse = $response->withJson($data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -83,40 +83,51 @@ $app->get ( '/members', function (Request $request, Response $response) {
 /**
  * create a new user
  */
-/*
+
 $app->post ( '/members', function (Request $request, Response $response) {
 	$data = $request->getParsedBody();
+	// password for 1 click logins are just the site that was used
+	$social_array = array('google', 'github');
 
-	$user_name = isset($data['userName']) ? filter_var($data['userName'], FILTER_SANITIZE_STRING) : '' ;
-	$first_name = isset($data['firstName']) ? filter_var($data['firstName'], FILTER_SANITIZE_STRING) : '' ;
-	$last_name = isset($data['lastName']) ? filter_var($data['lastName'], FILTER_SANITIZE_STRING) : '' ;
+	$full_name = isset($data['fullName']) ? filter_var($data['fullName'], FILTER_SANITIZE_STRING) : '' ;
 	$email = isset($data['email']) ? filter_var($data['email'], FILTER_SANITIZE_STRING) : '' ;
-	$api = isset($data['apiKey']) ? filter_var($data['apiKey'], FILTER_SANITIZE_STRING) : '' ;
-	$password = isset($data['password']) ? md5($data['password']) : '';
+	$password = isset($data['password']) ? filter_var($data['password'], FILTER_SANITIZE_STRING) : '';
+	// if social login, do not md5 the password
+	// also, social logins are already confirmed
+	$confirm_flag = 1;
+	$confirm_value = null;
+	$confirm_value_length = 20;
+	if (!in_array($password, $social_array)) {
+		$password = md5($password);
+		$confirm_flag = 0;
+		$confirm_value = "";
+		for ($i = 0; $i < $confirm_value_length; $i++)
+		{
+			$confirm_value .= chr(rand(97,122));
+		}
+	}
 
-	// all but password are required.  Password is not
-	// because it could be a social login, which handles
-	// uses its own password
-	if (!$user_name || !$first_name || !$last_name || !$email ) {
+	// all are required
+	if (!$password || !$full_name || !$email ) {
 		$data['error'] = true;
-		$data['message'] = 'Username, firstname, lastname, and email are required.';
-		$newResponse = $response->withJson($data, 400, JSON_NUMERIC_CHECK );
+		$data['message'] = 'User name, password, and email are required.';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode, $api );
+	$db = db_connect ( $request, $response, $errCode );
 	if ($errCode) {
 		return $db;
 	}
 
-	$query = 'INSERT INTO member 
-							(first_name, last_name, user_name, email, confirm_flag, password) 
-							VALUES  (?, ?, ?, ?, ?, ?)';
+	$query = 'INSERT INTO members
+							(fullName, email, confirmValue, confirmFlag, password) 
+							VALUES  (?, ?, ?, ?, ?)';
 
-	$insert_data = array($first_name, $last_name, $user_name, $email, 1, $password);							
+	$insert_data = array($full_name, $email, $confirm_value, $confirm_flag, $password);							
 
 	$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Member', $errCode, false, false, false );
 	if ($errCode) {
@@ -124,14 +135,14 @@ $app->post ( '/members', function (Request $request, Response $response) {
 	}
 
 	$return_data = array(
-		'memberid'				=> $db->lastInsertId(),
-		'username'				=> $user_name,
-		'firstName'				=> $first_name,
-		'lastName'				=> $last_name,
+		'id'				=> $db->lastInsertId(),
+		'fullName'				=> $full_name,
 		'email'						=> $email,
-		'totalCalsToday'	=> 0
+		'confirmFlag'			=> $confirm_flag,
+		'securityLevel'		=> 1,
+		'candidateId'			=> ''
 	);
 	$return_data = array('data' => $return_data);
 	$newResponse = $response->withJson($return_data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
-});*/
+});
