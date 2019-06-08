@@ -160,8 +160,7 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 		$data ['error'] = true;
 		$data ['errorCode'] = $stmt->errorCode();
 		$data ['message'] = 'Database SQL Error ' . $errMsg . ' ' . $stmt->errorCode () . ' - ' . $stmt->errorInfo () [2];
-		$data = array('data' => $data);
-		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
