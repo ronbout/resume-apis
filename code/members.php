@@ -85,13 +85,14 @@ $app->get ( '/members', function (Request $request, Response $response) {
  */
 
 $app->post ( '/members', function (Request $request, Response $response) {
-	$data = $request->getParsedBody();
+	$post_data = $request->getParsedBody();
+	$data = array();
 	// password for 1 click logins are just the site that was used
 	$social_array = array('google', 'github');
 
-	$full_name = isset($data['fullName']) ? filter_var($data['fullName'], FILTER_SANITIZE_STRING) : '' ;
-	$email = isset($data['email']) ? filter_var($data['email'], FILTER_SANITIZE_STRING) : '' ;
-	$password = isset($data['password']) ? filter_var($data['password'], FILTER_SANITIZE_STRING) : '';
+	$full_name = isset($post_data['name']) ? filter_var($post_data['name'], FILTER_SANITIZE_STRING) : '' ;
+	$email = isset($post_data['email']) ? filter_var($post_data['email'], FILTER_SANITIZE_STRING) : '' ;
+	$password = isset($post_data['password']) ? filter_var($post_data['password'], FILTER_SANITIZE_STRING) : '';
 	// if social login, do not md5 the password
 	// also, social logins are already confirmed
 	$confirm_flag = 1;
