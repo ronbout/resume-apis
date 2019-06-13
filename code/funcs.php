@@ -8,7 +8,7 @@ function get_pass_info($companyCode) {
 	
 	$passfile = ($_SERVER['HTTP_HOST'] == 'localhost') ? 
 			'C:\Users\ron\Documents\passwords\apis\\'.$companyCode.".txt" 
-			: '../passwords/apis/'.$companyCode.".txt";
+			: '~/passwords/apis/'.$companyCode.".txt";
 
 	return @file($passfile);
 }
