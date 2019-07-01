@@ -32,6 +32,32 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 		return $db;
 	}
 
+	/**
+	 * must clean up company vw person info as not all of that is required
+	 * also, want to set it as a separate object within the company return,
+	 * which is impossible to do within SQL
+	 * I do not want to change company_vw, because we might need all this info 
+	 * in other settings, such as individual company api's.
+	 */
+	$personFields = array('personId', 'personFormattedName', 'personGivenName', 'personMiddleName', 'personFamilyName', 'personAffix', 'personAddr1',
+	'personAddr2', 'personMunicipality', 'personRegion', 'personPostalCode', 'personCountryCode', 'personEmail1', 'personEmail2', 'personHomePhone',
+	'personMobilePhone', 'personWorkPhone');
+
+	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
+	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
+	foreach ($response_data as &$resp) {
+		$contactPerson = array();
+		foreach ($personObjectFields as $fld) {
+			$contactPerson[$fld] = isset($resp[$fld]) ? $resp[$fld] : null;
+		}
+
+		foreach ($personFields as $key => $fld) {
+			if (isset($resp[$fld])) unset($resp[$fld]);
+		}
+
+		$resp['contactPerson'] = $contactPerson;
+	}
+
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
