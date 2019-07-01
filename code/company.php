@@ -27,7 +27,7 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 	}
 
 	$query = 'SELECT * FROM company_vw ' . $limit_clause;
-	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true );
+	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false );
 	if ($errCode) {
 		return $db;
 	}
@@ -41,7 +41,7 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 	 */
 	$personFields = array('personId', 'personFormattedName', 'personGivenName', 'personMiddleName', 'personFamilyName', 'personAffix', 'personAddr1',
 	'personAddr2', 'personMunicipality', 'personRegion', 'personPostalCode', 'personCountryCode', 'personEmail1', 'personEmail2', 'personHomePhone',
-	'personMobilePhone', 'personWorkPhone');
+	'personMobilePhone', 'personWorkPhone', 'personWebsite');
 
 	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
 	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
@@ -52,7 +52,7 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 		}
 
 		foreach ($personFields as $key => $fld) {
-			if (isset($resp[$fld])) unset($resp[$fld]);
+			unset($resp[$fld]);
 		}
 
 		$resp['contactPerson'] = $contactPerson;
@@ -74,14 +74,28 @@ $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 		return $db;
 	}
 	
-	$query = 'SELECT * FROM company_vw WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true );
+	$query = 'SELECT * FROM company WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
 	if ($errCode) {
 		return $db;
 	}
 	
-	// TODO:  have to pull out all the person fields to create a separate object inside the larger object
+	// now to pull out Contact Person info if it exists
+	if ($response_data['contactPersonId'] !== null) {
+		// read from person view with phone numbers
 	
+		$query = 'SELECT * FROM person_with_phoneTypes_vw WHERE id = ?';
+		$person_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Contact Person', $errCode, true, false, true, false );
+		if ($errCode) {
+			return $db;
+		}
+		$contactPerson = $person_data;
+	} else {
+		$contactPerson = null;
+	}
+
+	unset($response_data['contactPersonId']);
+	$response_data['contactPerson'] = $contactPerson;
 
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
