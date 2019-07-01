@@ -84,7 +84,7 @@ $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 	if ($response_data['contactPersonId'] !== null) {
 		// read from person view with phone numbers
 	
-		$query = 'SELECT * FROM person_with_phoneTypes_vw WHERE id = ?';
+		$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
 		$person_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Contact Person', $errCode, true, false, true, false );
 		if ($errCode) {
 			return $db;
