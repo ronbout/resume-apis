@@ -62,6 +62,88 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
+$app->get ( '/companies/search', function (Request $request, Response $response) {
+	$data = array ();
+	$query = $request->getQueryParams();
+	
+	$name = isset ($query['name']) ? filter_var ( $query['name'] ) : '';
+	$email = isset ($query['email']) ? filter_var ( $query['email'] ) : '';
+
+	if (!$name && !$email) {
+		$data ['error'] = true;
+		$data ['message'] = 'Search field is required.';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// check for offset and limit and add to Select
+	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	$limit_clause = '';
+	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	}
+	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	}
+
+	// beause the email should be unique, test only that if it is present, otherwise test name
+	$where_clause = ' WHERE ';
+	if ($email) {
+		$where_clause .= 'email = :email ';
+		$sql_parms = array('email' => $email);
+	} else {
+		$where_clause .= 'jws_score(:name, name) > 0.8 ';
+		$sql_parms = array('name' => $name);
+	}
+
+	$query = 'SELECT * FROM company_vw ' . $where_clause . $limit_clause;
+
+	$response_data = pdo_exec( $request, $response, $db, $query, $sql_parms, 'Searching Companies', $errCode, false, true, true, false );
+	if ($errCode) {
+		return $db;
+	}
+
+	/**
+	 * must clean up company vw person info as not all of that is required
+	 * also, want to set it as a separate object within the company return,
+	 * which is impossible to do within SQL
+	 * I do not want to change company_vw, because we might need all this info 
+	 * in other settings, such as individual company api's.
+	 */
+	
+	$personFields = array('personId', 'personFormattedName', 'personGivenName', 'personMiddleName', 'personFamilyName', 'personAffix', 'personAddr1',
+	'personAddr2', 'personMunicipality', 'personRegion', 'personPostalCode', 'personCountryCode', 'personEmail1', 'personEmail2', 'personHomePhone',
+	'personMobilePhone', 'personWorkPhone', 'personWebsite');
+
+	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
+	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
+	foreach ($response_data as &$resp) {
+		$contactPerson = array();
+		foreach ($personObjectFields as $fld) {
+			$contactPerson[$fld] = isset($resp[$fld]) ? $resp[$fld] : null;
+		}
+
+		foreach ($personFields as $key => $fld) {
+			unset($resp[$fld]);
+		}
+
+		$resp['contactPerson'] = $contactPerson;
+	}
+
+	$data = array ('data' => $response_data );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
+
+
 $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute ( 'id' );
 	$data = array ();
@@ -101,6 +183,7 @@ $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
+
 $app->post ( '/companies', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
@@ -112,7 +195,7 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 	if (! $name) {
 		$data ['error'] = true;
 		$data ['message'] = 'Name is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 

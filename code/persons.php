@@ -18,7 +18,7 @@ $app->get ( '/persons/search', function (Request $request, Response $response) {
 	if (!$name && !$email && !$phone) {
 		$data ['error'] = true;
 		$data ['message'] = 'Search field is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
