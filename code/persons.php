@@ -7,6 +7,38 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+
+$app->get ( '/persons', function (Request $request, Response $response) {
+	$data = array ();
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// check for offset and limit and add to Select
+	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	$limit_clause = '';
+	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	}
+	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	}
+
+	$query = 'SELECT * FROM person_with_phonetypes_vw ' . $limit_clause;
+	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Persons', $errCode, false, true, true, false );
+	if ($errCode) {
+		return $db;
+	}
+
+	$data = array ('data' => $response_data );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
 $app->get ( '/persons/search', function (Request $request, Response $response) {
 	$data = array ();
 	$query = $request->getQueryParams();
@@ -66,3 +98,25 @@ $app->get ( '/persons/search', function (Request $request, Response $response) {
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 });
+
+$app->get ( '/persons/{id}', function (Request $request, Response $response) {
+	$id = $request->getAttribute ( 'id' );
+	$data = array ();
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+	
+	$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	if ($errCode) {
+		return $db;
+	}
+
+	$data = array ('data' => $response_data );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );

@@ -45,10 +45,11 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 
 	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
 	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
+	$personNewFields = array('id', 'formattedName', 'givenName', 'familyName', 'email1', 'mobilePhone', 'workPhone');
 	foreach ($response_data as &$resp) {
 		$contactPerson = array();
-		foreach ($personObjectFields as $fld) {
-			$contactPerson[$fld] = isset($resp[$fld]) ? $resp[$fld] : null;
+		foreach ($personObjectFields as $key => $fld) {
+			$contactPerson[$personNewFields[$key]] = isset($resp[$fld]) ? $resp[$fld] : null;
 		}
 
 		foreach ($personFields as $key => $fld) {
@@ -124,11 +125,13 @@ $app->get ( '/companies/search', function (Request $request, Response $response)
 	'personMobilePhone', 'personWorkPhone', 'personWebsite');
 
 	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
+	// the view requires "person" prefix to distinguish from company fields, but want to rename for api, so personNewFields
 	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
+	$personNewFields = array('id', 'formattedName', 'givenName', 'familyName', 'email1', 'mobilePhone', 'workPhone');
 	foreach ($response_data as &$resp) {
 		$contactPerson = array();
-		foreach ($personObjectFields as $fld) {
-			$contactPerson[$fld] = isset($resp[$fld]) ? $resp[$fld] : null;
+		foreach ($personObjectFields as $key => $fld) {
+			$contactPerson[$personNewFields[$key]] = isset($resp[$fld]) ? $resp[$fld] : null;
 		}
 
 		foreach ($personFields as $key => $fld) {
