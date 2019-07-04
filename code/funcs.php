@@ -169,7 +169,7 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 		if ( $checkCount ) {
 			$errCode = true;
 			$data = array();
-			$data ['error'] = false;
+			$data ['error'] = true;
 			$data ['errorCode'] = 45002;  // this will just be our error code for Not Found
 			$data ['message'] = 'No records Found';
 			$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );

@@ -1,8 +1,7 @@
 <?php
 // candidates.php
-// the api code for RESTful CRUD operations of the Candidates
-// table and related.  This version will be done with my own
-// SQL code.  Then, it will be refactored with an ORM
+// the api code for  CRUD operations of the Candidates
+// table and related.  
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -28,29 +27,19 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$query = 'select * from candidate_with_phoneTypes_skills_vw  ' . $limit_clause;
-
-	if (! $result = $db->query ( $query )) {
-		$data ['error'] = true;
-		$data ['message'] = 'Database SQL Error Retrieving Candidates: ' . $result->errorCode () . ' - ' . $result->errorInfo () [2];
-		$newResponse = $response->withJson ( $data, 500, JSON_NUMERIC_CHECK );
-		return $newResponse;
+	$query = 'select * from candidate_with_phonetypes_skills_vw  ' . $limit_clause;
+	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false );
+	if ($errCode) {
+		return $db;
 	}
 
-	$response_data = array ();
-	while ( ($info = $result->fetch ( PDO::FETCH_ASSOC )) ) {
-		$info = array_filter($info, function($val) {
-			return $val !== null;
-		});
-		if (array_key_exists('jobSkillName', $info))  $info['jobSkillName'] = explode('|', $info['jobSkillName']);
-		if (array_key_exists('certSkillName', $info))  $info['certSkillName'] = explode('|', $info['certSkillName']);
-		if (array_key_exists('edSkillName', $info))  $info['edSkillName'] = explode('|', $info['edSkillName']);
-
-		$response_data [] = $info;
+	// convert pipe-delimited skills to arrays
+	foreach ($response_data as &$resp) {
+		$resp['jobSkillName'] = (array_key_exists('jobSkillName', $resp) && $resp['jobSkillName']) ? explode('|', $resp['jobSkillName']) : null;
+		$resp['certSkillName'] = (array_key_exists('certSkillName', $resp) && $resp['certSkillName']) ? explode('|', $resp['certSkillName']) : null;
+		$resp['edSkillName'] = (array_key_exists('edSkillName', $resp) && $resp['edSkillName']) ? explode('|', $resp['edSkillName']) : null;
 	}
 	
-	
-
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
@@ -87,7 +76,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	if ($errCode) {
 		return $db;
 	}
-	$highlights && $response_data['candidateHighlights'] = $highlights;
+	$response_data['candidateHighlights'] = $highlights ? $highlights : null;
 	
 	// get the jobs
 	$query = 'SELECT * FROM candidate_jobs_vw WHERE candidateId = ?';
@@ -207,9 +196,6 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 		return $db;
 	}
 	$social_media && $response_data['socialMedia'] = $social_media;
-//echo var_dump($response_data);
-//die();
-	
 	
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
