@@ -39,24 +39,11 @@ $app->get ( '/companies', function (Request $request, Response $response) {
 	 * I do not want to change company_vw, because we might need all this info 
 	 * in other settings, such as individual company api's.
 	 */
-	$personFields = array('personId', 'personFormattedName', 'personGivenName', 'personMiddleName', 'personFamilyName', 'personAffix', 'personAddr1',
-	'personAddr2', 'personMunicipality', 'personRegion', 'personPostalCode', 'personCountryCode', 'personEmail1', 'personEmail2', 'personHomePhone',
-	'personMobilePhone', 'personWorkPhone', 'personWebsite');
 
-	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
+	// personObjectFields are only the ones to be returned in a contactPerson object
 	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
-	$personNewFields = array('id', 'formattedName', 'givenName', 'familyName', 'email1', 'mobilePhone', 'workPhone');
 	foreach ($response_data as &$resp) {
-		$contactPerson = array();
-		foreach ($personObjectFields as $key => $fld) {
-			$contactPerson[$personNewFields[$key]] = isset($resp[$fld]) ? $resp[$fld] : null;
-		}
-
-		foreach ($personFields as $key => $fld) {
-			unset($resp[$fld]);
-		}
-
-		$resp['contactPerson'] = $contactPerson;
+		$resp = create_lower_object( $resp, 'person', 'contactPerson', $personObjectFields);
 	}
 
 	$data = array ('data' => $response_data );
@@ -119,33 +106,16 @@ $app->get ( '/companies/search', function (Request $request, Response $response)
 	 * I do not want to change company_vw, because we might need all this info 
 	 * in other settings, such as individual company api's.
 	 */
-	
-	$personFields = array('personId', 'personFormattedName', 'personGivenName', 'personMiddleName', 'personFamilyName', 'personAffix', 'personAddr1',
-	'personAddr2', 'personMunicipality', 'personRegion', 'personPostalCode', 'personCountryCode', 'personEmail1', 'personEmail2', 'personHomePhone',
-	'personMobilePhone', 'personWorkPhone', 'personWebsite');
 
-	// personFields are all fields returned by company, personObjectFields are only the ones to be returned in a contactPerson object
-	// the view requires "person" prefix to distinguish from company fields, but want to rename for api, so personNewFields
+	// personObjectFields are only the ones to be returned in a contactPerson object
 	$personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
-	$personNewFields = array('id', 'formattedName', 'givenName', 'familyName', 'email1', 'mobilePhone', 'workPhone');
 	foreach ($response_data as &$resp) {
-		$contactPerson = array();
-		foreach ($personObjectFields as $key => $fld) {
-			$contactPerson[$personNewFields[$key]] = isset($resp[$fld]) ? $resp[$fld] : null;
-		}
-
-		foreach ($personFields as $key => $fld) {
-			unset($resp[$fld]);
-		}
-
-		$resp['contactPerson'] = $contactPerson;
+		$resp = create_lower_object( $resp, 'person', 'contactPerson', $personObjectFields);
 	}
 
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
-
-
 
 $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute ( 'id' );

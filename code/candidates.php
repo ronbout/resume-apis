@@ -57,19 +57,20 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	}
 	
 	$query = 'SELECT * FROM candidate_basic_vw WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true );
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
 	if ($errCode) {
 		return $db;
 	}
+
 	// explode out the pipe | delimited skill lists.  Will still include the skills w/ each job, education, etc
 	// but this gives the api consumer a quick listing w/o having to do a lot of work
 	if (array_key_exists('jobSkillName', $response_data))  $response_data['jobSkillName'] = explode('|', $response_data['jobSkillName']);
 	if (array_key_exists('certSkillName', $response_data))  $response_data['certSkillName'] = explode('|', $response_data['certSkillName']);
 	if (array_key_exists('edSkillName', $response_data))  $response_data['edSkillName'] = explode('|', $response_data['edSkillName']);
 
-	$response_data = runLowerObject( $response_data, 'person');
+	$response_data = create_lower_object( $response_data, 'person');
 	
-	// TODO:  create lower object for agency contact if it exists
+	$response_data = create_lower_object( $response_data, 'agency');
 	
 	$query = 'SELECT id, highlight FROM candidatehighlights WHERE candidateId = ?';
 	$highlights = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Highlights', $errCode, false, true );

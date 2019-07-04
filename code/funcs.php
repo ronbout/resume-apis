@@ -198,50 +198,31 @@ function pdo_exec( Request $request, Response $response, $db, $query, $execArray
 	}
 }
 
-function runLowerObject( $obj, $newObjName, $fieldList = null ) {
-
-	$obj_fields = array('personId', 
-			'personFormattedName',
-			'personGivenName',
-			'personMiddleName',
-			'personFamilyName',
-			'personAffix',
-			'personAddr1',
-			'personAddr2',
-			'personMunicipality',
-			'personRegion',
-			'personPostalCode',
-			'personCountryCode',
-			'personEmail1',
-			'personEmail2',
-			'personWebsite',
-			'personHomePhone',
-			'personWorkPhone',
-			'personMobilePhone'
-	);
-
-	if ( is_callable($fieldList) ) {
-		// we have a callback function to run against the default field list
-		$flds = array_map($fieldList, $social_fields );
-	} elseif ( is_array($fieldList) ) {
-		$flds = $fieldList;
-	} else {
-		$flds = $obj_fields;
-	}
-
-	return createLowerObject( $obj, $newObjName, $flds );
+function strip_prefix($field, $prefix) {
+	return lcfirst(str_replace($prefix, '', $field));
 }
 
-function createLowerObject( $obj, $newObjName, $fieldList ) {
-	$tmpObj = array();
-	
-	foreach( $fieldList as $fld ) {
-		if ( array_key_exists($fld, $obj) ) {
-			$tmpObj[$fld] = $obj[$fld];
-			unset($obj[$fld]);
-		}
-	}
-	
-	count($tmpObj) && $obj[$newObjName] = $tmpObj;	
-	return $obj;
+function create_lower_object ($orig_obj, $obj_str, $new_field = null, $new_objfields = null) {
+	// need to create sub Objects for api returns from view returns.
+	// views use prefix ("person", "agency") to separate fields from
+	// main fields.  Strip prefix and create new object (person: {})
+	// are actually arrays, but will be objects after json conversion
+		$tmp_obj = array();
+		$prefix_len = strlen($obj_str);
+		if (!$new_field) $new_field = $obj_str;
+		
+		$ret_obj = array_filter($orig_obj, function($val, $key) use ($prefix_len, $new_objfields, $obj_str, &$tmp_obj) {
+			if (substr($key, 0, $prefix_len) == $obj_str) {
+				// only include in new object if foundin new_fields or new_fileds is null
+				if ($new_objfields == null || array_search($key, $new_objfields) !== false ) {
+					$tmp_obj[strip_prefix($key, $obj_str)] = $val;
+				}
+				return false;
+			} else {
+				return true;
+			}
+		}, ARRAY_FILTER_USE_BOTH);
+		
+		$ret_obj[$new_field] = $tmp_obj;
+		return $ret_obj;
 }
