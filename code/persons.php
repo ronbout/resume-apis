@@ -64,17 +64,18 @@ $app->get ( '/persons/search', function (Request $request, Response $response) {
 
 	$query = '';
 	$name_query =	"SELECT * 
-									FROM person
+									FROM person_with_phonetypes_vw
 									WHERE jws_score(:name, CONCAT_WS(' ', givenName, familyName)) > 0.8 
 									OR jws_score(:name, CONCAT_WS(' ', familyName, givenName)) > 0.8 ";
 	$email_query = "SELECT *
-									FROM person
+									FROM person_with_phonetypes_vw
 									WHERE email1 = :email
 									OR email2 = :email";
 	$phone_query = "SELECT p.* 
-									FROM person p, personphone pp
-									WHERE pp.phoneNumber = :phone
-									AND pp.personId = p.id";
+									FROM person_with_phonetypes_vw
+									WHERE homePhone = :phone
+									OR mobilePhone = :phone
+									OR workPhone = :phone";
 	// 6 possible combos of search criteria
 	$sql_parms = array();
 	if ($name) {
