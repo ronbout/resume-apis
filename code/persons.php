@@ -71,7 +71,7 @@ $app->get ( '/persons/search', function (Request $request, Response $response) {
 									FROM person_with_phonetypes_vw
 									WHERE email1 = :email
 									OR email2 = :email";
-	$phone_query = "SELECT p.* 
+	$phone_query = "SELECT * 
 									FROM person_with_phonetypes_vw
 									WHERE homePhone = :phone
 									OR mobilePhone = :phone
