@@ -30,7 +30,7 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 	$query = 'select * from candidate_with_phonetypes_skills_vw  ' . $limit_clause;
 	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false );
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
 
 	// convert pipe-delimited skills to arrays
@@ -41,6 +41,73 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 	}
 	
 	$data = array ('data' => $response_data );
+	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
+$app->get ( '/candidates/search', function (Request $request, Response $response) {
+	$data = array ();
+	$query = $request->getQueryParams();
+	
+	// $name = isset ($query['name']) ? filter_var ( $query['name'] ) : '';
+	// $email = isset ($query['email']) ? filter_var ( $query['email'] ) : '';
+
+	// if (!$name && !$email) {
+	// 	$data ['error'] = true;
+	// 	$data ['message'] = 'Search field is required.';
+	// 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+	// 	return $newResponse;
+	// }
+
+	// // login to the database. if unsuccessful, the return value is the
+	// // Response to send back, otherwise the db connection;
+	// $errCode = 0;
+	// $db = db_connect ( $request, $response, $errCode );
+	// if ($errCode) {
+	// 	return $db;
+	// }
+
+	// // check for offset and limit and add to Select
+	// $q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
+	// $limit_clause = '';
+	// if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
+	// 	$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	// }
+	// if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
+	// 	$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
+	// }
+
+	// // beause the email should be unique, test only that if it is present, otherwise test name
+	// $where_clause = ' WHERE ';
+	// if ($email) {
+	// 	$where_clause .= 'email = :email ';
+	// 	$sql_parms = array('email' => $email);
+	// } else {
+	// 	$where_clause .= 'jws_score(:name, name) > 0.8 ';
+	// 	$sql_parms = array('name' => $name);
+	// }
+
+	// $query = 'SELECT * FROM company_vw ' . $where_clause . $limit_clause;
+
+	// $response_data = pdo_exec( $request, $response, $db, $query, $sql_parms, 'Searching Companies', $errCode, false, true, true, false );
+	// if ($errCode) {
+	// 	return $response_data;
+	// }
+
+	// /**
+	//  * must clean up company vw person info as not all of that is required
+	//  * also, want to set it as a separate object within the company return,
+	//  * which is impossible to do within SQL
+	//  * I do not want to change company_vw, because we might need all this info 
+	//  * in other settings, such as individual company api's.
+	//  */
+
+	// // personObjectFields are only the ones to be returned in a contactPerson object
+	// $personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
+	// foreach ($response_data as &$resp) {
+	// 	$resp = create_lower_object( $resp, 'person', 'contactPerson', $personObjectFields);
+	// }
+
+	// $data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
@@ -59,145 +126,173 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	$query = 'SELECT * FROM candidate_basic_vw WHERE id = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
 
 	// explode out the pipe | delimited skill lists.  Will still include the skills w/ each job, education, etc
 	// but this gives the api consumer a quick listing w/o having to do a lot of work
-	if (array_key_exists('jobSkillName', $response_data))  $response_data['jobSkillName'] = explode('|', $response_data['jobSkillName']);
-	if (array_key_exists('certSkillName', $response_data))  $response_data['certSkillName'] = explode('|', $response_data['certSkillName']);
-	if (array_key_exists('edSkillName', $response_data))  $response_data['edSkillName'] = explode('|', $response_data['edSkillName']);
+	$response_data['jobSkillName'] = (array_key_exists('jobSkillName', $response_data) && $response_data['jobSkillName']) ? explode('|', $response_data['jobSkillName']) : null;
+	$response_data['certSkillName'] = (array_key_exists('certSkillName', $response_data) && $response_data['certSkillName']) ? explode('|', $response_data['certSkillName']) : null;
+	$response_data['edSkillName'] = (array_key_exists('edSkillName', $response_data) && $response_data['edSkillName']) ? explode('|', $response_data['edSkillName']) : null;
 
 	$response_data = create_lower_object( $response_data, 'person');
 	
 	$response_data = create_lower_object( $response_data, 'agency');
 	
-	$query = 'SELECT id, highlight FROM candidatehighlights WHERE candidateId = ?';
-	$highlights = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Highlights', $errCode, false, true );
+	$query = 'SELECT id, highlight, sequence, skillIds, skillNames FROM candidate_highlights_skills_vw WHERE candidateId = ?';
+	$highlights = process_highlights($request, $response, $db, $query, array($id), $errCode);
 	if ($errCode) {
-		return $db;
+		return $highlights;
 	}
+
 	$response_data['candidateHighlights'] = $highlights ? $highlights : null;
 	
 	// get the jobs
 	$query = 'SELECT * FROM candidate_jobs_vw WHERE candidateId = ?';
-	$jobs_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Jobs', $errCode, false, true );
+	$jobs_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Jobs', $errCode, false, true, true, false );
 	if ($errCode) {
-		return $db;
+		return $jobs_data;
 	}
 	
 	if ($jobs_data) {
 		// loop through each job and explode out the pipe | delimited skill lists.
 		foreach ($jobs_data as &$job_data) {
-			if (array_key_exists('skillIds', $job_data))  {
-				$job_data['skillIds'] = explode('|', $job_data['skillIds']);
-				$job_data['skillNames'] = explode('|', $job_data['skillNames']);
-				$job_data['skillPcts'] = explode('|', $job_data['skillPcts']);
-				$job_data['skillTestedFlag'] = explode('|', $job_data['skillTestedFlag']);
-				$job_data['skillTestResults'] = explode('|', $job_data['skillTestResults']);
-				$job_data['skillTotalMonths'] = explode('|', $job_data['skillTotalMonths']);
-				$job_data['skillTags'] = explode('|', $job_data['skillTags']);
-				$job_data['skillTagNames'] = explode('|', $job_data['skillTagNames']);
-				$temp_skills = array();
-				foreach ( $job_data['skillIds'] as $key => $skillId) {
-					$temp_skills[] = array('SkillId' => $skillId, 
-								'skillName' => $job_data['skillNames'][$key],
-								'skillPct' => $job_data['skillPcts'][$key],
-								'skillTested' => (array_key_exists('skillTestedFlag', $job_data)) ? $job_data['skillTestedFlag'][$key] : 0,
-								'skillTestResults' => (array_key_exists('skillTestResults', $job_data)) ? $job_data['skillTestResults'][$key] : 'NULL',
-								'skillTotalMonths' => (array_key_exists('skillTotalMonths', $job_data)) ? $job_data['skillTotalMonths'][$key] : 'NULL',
-								'skillTags' => (array_key_exists('skillTags', $job_data)) ? $job_data['skillTags'][$key] : 'NULL',
-								'skillTagNames' => (array_key_exists('skillTagNames', $job_data)) ? $job_data['skillTagNames'][$key] : 'NULL',
-								);
-				}
-				$job_data['jobSkills'] = $temp_skills;
-				unset($job_data['skillIds']);
-				unset($job_data['skillNames']);
-				unset($job_data['skillPcts']);
-				unset($job_data['skillTestedFlag']);
-				unset($job_data['skillTestResults']);
-				unset($job_data['skillTotalMonths']);
-				unset($job_data['skillTags']);
-				unset($job_data['skillTagNames']);
+				
+			$job_data['skillIds'] = (array_key_exists('skillIds', $job_data) && $job_data['skillIds']) ? explode('|', $job_data['skillIds']) : null;
+			$job_data['skillNames'] = (array_key_exists('skillNames', $job_data) && $job_data['skillNames']) ? explode('|', $job_data['skillNames']) : null;
+			$job_data['skillPcts'] = (array_key_exists('skillPcts', $job_data) && $job_data['skillPcts']) ? explode('|', $job_data['skillPcts']) : null;
+			$job_data['skillTags'] = (array_key_exists('skillTags', $job_data) && $job_data['skillTags']) ? explode('|', $job_data['skillTags']) : null;
+			$job_data['skillTagNames'] = (array_key_exists('skillTagNames', $job_data) && $job_data['skillTagNames']) ? explode('|', $job_data['skillTagNames']) : null;
+
+
+			/**
+			 * 
+			 * add skillTags and skillTagnames back in
+			 * 
+			 */
+
+			if ($job_data['skillIds']) {
+				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['skillTags'], $job_data['skillTagNames']);
+				$job_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'skillTag', 'skillTagName'));
+			} else {
+				$job_data['skills'] = null;
 			}
-			// now need to retrieve the highlights for each job
-			$query = 'SELECT id, highlight FROM candidatejobhighlights WHERE jobId = ?';
-			$highlights = pdo_exec( $request, $response, $db, $query, array($job_data['id']), 'Retrieving Candidate Job Highlights', 
-									$errCode, false, true );
+			unset($job_data['skillIds']);
+			unset($job_data['skillNames']);
+			unset($job_data['skillPcts']);
+			unset($job_data['skillTestedFlag']);
+			unset($job_data['skillTestResults']);
+			unset($job_data['skillTotalMonths']);
+			unset($job_data['skillTags']);
+			unset($job_data['skillTagNames']);
+
+			// break out the contactPerson and company data into sub objects
+			$job_data = create_lower_object( $job_data, 'contactPerson');
+			$job_data = create_lower_object( $job_data, 'company');
+
+			$query = 'SELECT id, highlight, sequence, skillIds, skillNames FROM candidate_job_highlights_skills_vw WHERE jobId = ?';
+			$highlights = process_highlights($request, $response, $db, $query, array($job_data['id']), $errCode);
 			if ($errCode) {
-				return $db;
+				return $highlights;
 			}
-			$highlights && $job_data['jobHighlights'] = $highlights;
+			$job_data['jobHighlights'] = $highlights ? $highlights : null;
 		}
-		$response_data['jobs'] = $jobs_data;
 	}
+	$response_data['experience'] = $jobs_data ? $jobs_data : null;
 	
 	// get education
 	$query = 'SELECT * FROM candidate_education_vw WHERE candidateId = ?';
-	$ed_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Education', $errCode, false, true );
+	$eds_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Education', $errCode, false, true, true, false );
 	if ($errCode) {
-		return $db;
+		return $eds_data;
 	}
 	
-	if ($ed_data) {
+	if ($eds_data) {
 		// loop through each job and explode out the pipe | delimited skill lists.
-		foreach ($ed_data as &$ed_row) {
-			if (array_key_exists('skillIds', $ed_row))  {
-				$ed_row['skillIds'] = explode('|', $ed_row['skillIds']);
-				$ed_row['skillNames'] = explode('|', $ed_row['skillNames']);
-				$ed_row['skillPcts'] = explode('|', $ed_row['skillPcts']);
-				$temp_skills = array();
-				foreach ( $ed_row['skillIds'] as $key => $skillId) {
-					$temp_skills[] = array('SkillId' => $skillId, 
-											'skillName' => $ed_row['skillNames'][$key],
-											'skillPct' => $ed_row['skillPcts'][$key]);
-				}
-				$ed_row['educationSkills'] = $temp_skills;
-				unset($ed_row['skillIds']);
-				unset($ed_row['skillNames']);
-				unset($ed_row['skillPcts']);
+		foreach ($eds_data as &$ed_data) {
+
+			$ed_data['skillIds'] = (array_key_exists('skillIds', $ed_data) && $ed_data['skillIds']) ? explode('|', $ed_data['skillIds']) : null;
+			$ed_data['skillNames'] = (array_key_exists('skillNames', $ed_data) && $ed_data['skillNames']) ? explode('|', $ed_data['skillNames']) : null;
+			$ed_data['skillPcts'] = (array_key_exists('skillPcts', $ed_data) && $ed_data['skillPcts']) ? explode('|', $ed_data['skillPcts']) : null;
+
+			if ($ed_data['skillIds']) {
+				$data_array = array($ed_data['skillIds'], $ed_data['skillNames'], $ed_data['skillPcts']);
+				$ed_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct'));
+			} else {
+				$ed_data['skills'] = null;
 			}
+
+			unset($ed_data['skillIds']);
+			unset($ed_data['skillNames']);
+			unset($ed_data['skillPcts']);
 		}
-		$response_data['education'] = $ed_data;
 	}
+	$response_data['education'] = $eds_data ? $eds_data : null;
 	
 	// get certifications
 	$query = 'SELECT * FROM candidate_certifications_vw WHERE candidateId = ?';
-	$cert_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Certifications', $errCode, false, true );
+	$certs_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Certifications', $errCode, false, true, true, false );
 	if ($errCode) {
-		return $db;
+		return $certs_data;
 	}
 	
-	if ($cert_data) {
+	if ($certs_data) {
 		// loop through each job and explode out the pipe | delimited skill lists.
-		foreach ($cert_data as &$cert_row) {
-			if (array_key_exists('skillIds', $cert_row))  {
-				$cert_row['skillIds'] = explode('|', $cert_row['skillIds']);
-				$cert_row['skillNames'] = explode('|', $cert_row['skillNames']);
-				$cert_row['skillPcts'] = explode('|', $cert_row['skillPcts']);
-				$temp_skills = array();
-				foreach ( $cert_row['skillIds'] as $key => $skillId) {
-					$temp_skills[] = array('SkillId' => $skillId,
-							'skillName' => $cert_row['skillNames'][$key],
-							'skillPct' => $cert_row['skillPcts'][$key]);
-				}
-				$cert_row['certificationSkills'] = $temp_skills;
-				unset($cert_row['skillIds']);
-				unset($cert_row['skillNames']);
-				unset($cert_row['skillPcts']);
+		foreach ($certs_data as &$cert_data) {
+
+			$cert_data['skillIds'] = (array_key_exists('skillIds', $cert_data) && $cert_data['skillIds']) ? explode('|', $cert_data['skillIds']) : null;
+			$cert_data['skillNames'] = (array_key_exists('skillNames', $cert_data) && $cert_data['skillNames']) ? explode('|', $cert_data['skillNames']) : null;
+			$cert_data['skillPcts'] = (array_key_exists('skillPcts', $cert_data) && $cert_data['skillPcts']) ? explode('|', $cert_data['skillPcts']) : null;
+
+			if ($cert_data['skillIds']) {
+				$data_array = array($cert_data['skillIds'], $cert_data['skillNames'], $cert_data['skillPcts']);
+				$cert_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct'));
+			} else {
+				$cert_data['skills'] = null;
 			}
+
+			unset($cert_data['skillIds']);
+			unset($cert_data['skillNames']);
+			unset($cert_data['skillPcts']);
 		}
-		$response_data['certifications'] = $cert_data;
 	}
+	$response_data['certifications'] = $certs_data ? $certs_data : null;
 	
 	// read in social media
 	$query = 'SELECT id, socialType, socialLink FROM candidatesocialmedia WHERE candidateId = ?';
 	$social_media = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Social Media', $errCode, false, true );
 	if ($errCode) {
-		return $db;
+		return $social_media;
 	}
-	$social_media && $response_data['socialMedia'] = $social_media;
-	
+	$response_data['socialMedia'] = $social_media ? $social_media : null;
+
+	// var_dump($response_data);
+	// die();
+
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
+
+function process_highlights($request, $response, $db, $query, $id_parm, &$errCode) {
+	$highlights = pdo_exec( $request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false );
+	if ($errCode) {
+		return $highlights;
+	}
+
+	foreach ($highlights as &$highlight) {
+		// 2 step process.  first explode out '|' delimited fields
+		// then, convert the 2 fields into a single array of objects
+		$highlight['skillIds'] = (array_key_exists('skillIds', $highlight) && $highlight['skillIds']) ? explode('|', $highlight['skillIds']) : null;
+		$highlight['skillNames'] = (array_key_exists('skillNames', $highlight) && $highlight['skillNames']) ? explode('|', $highlight['skillNames']) : null;
+		
+		if ($highlight['skillIds']) {
+			$highlight['skills'] = create_obj_from_arrays(array($highlight['skillIds'], $highlight['skillNames']), array('id', 'name'));
+		} else {
+			$highlight['skills'] = null;
+		}
+		unset($highlight['skillIds']);
+		unset($highlight['skillNames']);
+	}
+
+	return $highlights;
+}

@@ -226,3 +226,32 @@ function create_lower_object ($orig_obj, $obj_str, $new_field = null, $new_objfi
 		$ret_obj[$new_field] = $tmp_obj;
 		return $ret_obj;
 }
+
+function create_obj_from_arrays ($data_arrays, $label_arrays) {
+	// the 1st parm contains arrays of data arrays.  Each top level element
+	// is the data for a single field in the final object.  Each label array
+	// element is the object field label for the corresponding data.
+	// i.e. data_arrays = array(array(4,7,22), array('java', 'html', 'css')
+	// i.e. $label_arrays = array('id', 'skillName')
+	// final result = array( array('id' => 4, 'skillName' => 'java'), ...)
+	
+	if (!is_array($data_arrays) || !is_array($label_arrays)) return null;
+	$fld_cnt = count($data_arrays);
+	if ($fld_cnt !== count($label_arrays)) return null;
+
+	$ret_array = array();
+	$data_cnt = count($data_arrays[0]);
+
+	for ($i=0; $i < $data_cnt; $i++) {
+		// take the i'th data from each of the data arrays
+		// and put into the ret array based on the labels
+
+		$tmp_array = array();
+		for($j=0; $j < $fld_cnt; $j++) {
+			$tmp_array[$label_arrays[$j]] = $data_arrays[$j][$i];
+		}
+		$ret_array[] = $tmp_array;
+	}
+	
+	return $ret_array;
+}
