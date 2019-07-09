@@ -190,7 +190,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			$job_data = create_lower_object( $job_data, 'contactPerson');
 			$job_data = create_lower_object( $job_data, 'company');
 
-			$query = 'SELECT id, highlight, sequence, skillIds, skillNames FROM candidate_job_highlights_skills_vw WHERE jobId = ?';
+			$query = 'SELECT id, highlight, sequence, includeInSummary, skillIds, skillNames FROM candidate_job_highlights_skills_vw WHERE jobId = ?';
 			$highlights = process_highlights($request, $response, $db, $query, array($job_data['id']), $errCode);
 			if ($errCode) {
 				return $highlights;
@@ -208,7 +208,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	}
 	
 	if ($eds_data) {
-		// loop through each job and explode out the pipe | delimited skill lists.
+		// loop through each education and explode out the pipe | delimited skill lists.
 		foreach ($eds_data as &$ed_data) {
 
 			$ed_data['skillIds'] = (array_key_exists('skillIds', $ed_data) && $ed_data['skillIds']) ? explode('|', $ed_data['skillIds']) : null;
@@ -237,7 +237,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	}
 	
 	if ($certs_data) {
-		// loop through each job and explode out the pipe | delimited skill lists.
+		// loop through each certification and explode out the pipe | delimited skill lists.
 		foreach ($certs_data as &$cert_data) {
 
 			$cert_data['skillIds'] = (array_key_exists('skillIds', $cert_data) && $cert_data['skillIds']) ? explode('|', $cert_data['skillIds']) : null;
