@@ -175,7 +175,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['skillTags'], $job_data['skillTagNames']);
 				$job_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'skillTag', 'skillTagName'));
 			} else {
-				$job_data['skills'] = null;
+				$job_data['skills'] = array();
 			}
 			unset($job_data['skillIds']);
 			unset($job_data['skillNames']);
@@ -219,7 +219,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 				$data_array = array($ed_data['skillIds'], $ed_data['skillNames'], $ed_data['skillPcts']);
 				$ed_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct'));
 			} else {
-				$ed_data['skills'] = null;
+				$ed_data['skills'] = array();
 			}
 
 			unset($ed_data['skillIds']);
@@ -248,7 +248,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 				$data_array = array($cert_data['skillIds'], $cert_data['skillNames'], $cert_data['skillPcts']);
 				$cert_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct'));
 			} else {
-				$cert_data['skills'] = null;
+				$cert_data['skills'] = array();
 			}
 
 			unset($cert_data['skillIds']);
@@ -288,7 +288,7 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 		if ($highlight['skillIds']) {
 			$highlight['skills'] = create_obj_from_arrays(array($highlight['skillIds'], $highlight['skillNames']), array('id', 'name'));
 		} else {
-			$highlight['skills'] = null;
+			$highlight['skills'] = array();
 		}
 		unset($highlight['skillIds']);
 		unset($highlight['skillNames']);

@@ -41,7 +41,7 @@ $app->get ( '/members', function (Request $request, Response $response) {
 	$query = 'select id, fullName, email, confirmFlag, password, securityLevel, candidateId from members
 	where email = ?' ;
 
-	$response_data = pdo_exec( $request, $response, $db, $query, array($email), 'Retrieving Member', $errCode, true );
+	$response_data = pdo_exec( $request, $response, $db, $query, array($email), 'Retrieving Member', $errCode, true, false, true, false );
 	if ($errCode) {
 		return $response_data;
 	}
