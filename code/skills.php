@@ -48,7 +48,7 @@ $app->get ( '/skills/{id}', function (Request $request, Response $response) {
 	if (! $id) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -116,7 +116,7 @@ $app->get ( '/skills/search/{srch}', function (Request $request, Response $respo
 	if (! $srch) {
 		$data ['error'] = true;
 		$data ['message'] = 'Search field is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -196,7 +196,7 @@ $app->post ( '/skills', function (Request $request, Response $response) {
 	if (! $name) {
 		$data ['error'] = true;
 		$data ['message'] = 'Name is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -338,7 +338,7 @@ $app->put ( '/skills/{id}', function (Request $request, Response $response) {
 	if (! $id || ! $sql_update_cols) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id and at least one column are required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -495,7 +495,7 @@ $app->delete ( '/skills/{id}', function (Request $request, Response $response) {
 	if (! $id) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
@@ -530,7 +530,7 @@ $app->get ( '/skill_techtags/{id}', function (Request $request, Response $respon
 	if (! $id) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -559,7 +559,7 @@ $app->delete ( '/skill_techtags/{skillid}/{techtagId}', function (Request $reque
 	if (! $skillId && ! $techtagId ) {
 		$data ['error'] = true;
 		$data ['message'] = "Skill and Tag ID's are required.";
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -602,7 +602,7 @@ $app->post ( '/skill_techtags', function (Request $request, Response $response) 
 	if (! $skillId || ! $techtagIds ) {
 		$data ['error'] = true;
 		$data ['message'] = 'Skill id and Tag ids are required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -642,7 +642,7 @@ $app->get ( '/skill_parentskills/{id}', function (Request $request, Response $re
 	if (! $id) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 
@@ -670,7 +670,7 @@ $app->get ( '/skill_childskills/{id}', function (Request $request, Response $res
 	if (! $id) {
 		$data ['error'] = true;
 		$data ['message'] = 'Id is required.';
-		$newResponse = $response->withJson ( $data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 

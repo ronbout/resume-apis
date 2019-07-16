@@ -89,7 +89,7 @@ function db_connect(Request $request, Response $response, &$errCode) {
 		$errCode = -3;
 		$data['error'] = true;
 		$data['message'] = 'Company Code and API Key are required.';
-		$newResponse = $response->withJson($data, 400, JSON_NUMERIC_CHECK );
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK );
 		return $newResponse;
 	}
 	
