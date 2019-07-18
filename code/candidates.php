@@ -44,72 +44,6 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
 
-$app->get ( '/candidates/search', function (Request $request, Response $response) {
-	$data = array ();
-	$query = $request->getQueryParams();
-	
-	// $name = isset ($query['name']) ? filter_var ( $query['name'] ) : '';
-	// $email = isset ($query['email']) ? filter_var ( $query['email'] ) : '';
-
-	// if (!$name && !$email) {
-	// 	$data ['error'] = true;
-	// 	$data ['message'] = 'Search field is required.';
-	// 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-	// 	return $newResponse;
-	// }
-
-	// // login to the database. if unsuccessful, the return value is the
-	// // Response to send back, otherwise the db connection;
-	// $errCode = 0;
-	// $db = db_connect ( $request, $response, $errCode );
-	// if ($errCode) {
-	// 	return $db;
-	// }
-
-	// // check for offset and limit and add to Select
-	// $q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
-	// $limit_clause = '';
-	// if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
-	// 	$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
-	// }
-	// if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
-	// 	$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
-	// }
-
-	// // beause the email should be unique, test only that if it is present, otherwise test name
-	// $where_clause = ' WHERE ';
-	// if ($email) {
-	// 	$where_clause .= 'email = :email ';
-	// 	$sql_parms = array('email' => $email);
-	// } else {
-	// 	$where_clause .= 'jws_score(:name, name) > 0.8 ';
-	// 	$sql_parms = array('name' => $name);
-	// }
-
-	// $query = 'SELECT * FROM company_vw ' . $where_clause . $limit_clause;
-
-	// $response_data = pdo_exec( $request, $response, $db, $query, $sql_parms, 'Searching Companies', $errCode, false, true, true, false );
-	// if ($errCode) {
-	// 	return $response_data;
-	// }
-
-	// /**
-	//  * must clean up company vw person info as not all of that is required
-	//  * also, want to set it as a separate object within the company return,
-	//  * which is impossible to do within SQL
-	//  * I do not want to change company_vw, because we might need all this info 
-	//  * in other settings, such as individual company api's.
-	//  */
-
-	// // personObjectFields are only the ones to be returned in a contactPerson object
-	// $personObjectFields = array('personId', 'personFormattedName', 'personGivenName', 'personFamilyName', 'personEmail1',	'personMobilePhone', 'personWorkPhone');
-	// foreach ($response_data as &$resp) {
-	// 	$resp = create_lower_object( $resp, 'person', 'contactPerson', $personObjectFields);
-	// }
-
-	// $data = array ('data' => $response_data );
-	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-} );
 
 $app->get ( '/candidates/{id}', function (Request $request, Response $response) {
 	$id = $request->getAttribute ( 'id' );
@@ -272,6 +206,65 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
+
+
+$app->post ( '/candidates', function (Request $request, Response $response) {
+	$post_data = $request->getParsedBody ();
+	$data = array ();
+
+	$person_id = isset ( $post_data ['personId'] ) ? filter_var ( $post_data ['personId'], FILTER_SANITIZE_STRING ) : '';
+	
+	if ( !$person_id ) {
+		$data ['error'] = true;
+		$data ['message'] = 'Person Id is required.';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+	
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+	
+	// create person item and get insert id
+	$query = 'INSERT INTO candidate
+							(personId)
+							VALUES ( ?)';
+
+	$insert_data = array($person_id);
+
+	$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Candidate', $errCode, false, false, false );
+	if ($errCode) {
+		return $response_data;
+	}
+
+
+	// get new candidate id to return
+	if (! $candidate_id = $db->lastInsertId() ) {
+		// unknown insert error - should NOT get here
+		$return_data ['error'] = true;
+		$return_data ['errorCode'] = 45002; // unknown error
+		$return_data ['message'] = 'Unknown error creating Candidate';
+		$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+
+	// everything was fine. return success and the full data object
+	$data ['id'] = $candidate_id;
+	$data ['personId'] = $person_id;
+	
+	// wrap it in data object
+	$data = array (
+			'data' => $data 
+	);
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
+} );
+
 
 function process_highlights($request, $response, $db, $query, $id_parm, &$errCode) {
 	$highlights = pdo_exec( $request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false );
