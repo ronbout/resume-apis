@@ -134,7 +134,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			if ($errCode) {
 				return $highlights;
 			}
-			$job_data['jobHighlights'] = $highlights ? $highlights : null;
+			$job_data['highlights'] = $highlights ? $highlights : array();
 		}
 	}
 	$response_data['experience'] = $jobs_data ? $jobs_data : null;
@@ -166,7 +166,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			unset($ed_data['skillPcts']);
 		}
 	}
-	$response_data['education'] = $eds_data ? $eds_data : null;
+	$response_data['education'] = $eds_data ? $eds_data : array();
 	
 	// get certifications
 	$query = 'SELECT * FROM candidate_certifications_vw WHERE candidateId = ?';
