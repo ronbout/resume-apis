@@ -25,6 +25,7 @@ require_once('code/tags.php');
 require_once('code/skills.php');
 require_once('code/companyconfig.php');
 require_once('code/candidates.php');
+require_once('code/candidates_misc.php');
 require_once('code/companies.php');
 require_once('code/persons.php');
 require_once('code/members.php');
