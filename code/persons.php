@@ -32,7 +32,7 @@ $app->get ( '/persons', function (Request $request, Response $response) {
 	$query = 'SELECT * FROM person_with_phonetypes_vw ' . $limit_clause;
 	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Persons', $errCode, false, true, true, false );
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
 
 	$data = array ('data' => $response_data );
@@ -111,9 +111,9 @@ $app->get ( '/persons/{id}', function (Request $request, Response $response) {
 	}
 	
 	$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Person', $errCode, true, false, true, false );
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
 
 	$data = array ('data' => $response_data );
@@ -329,7 +329,7 @@ $app->put ( '/persons/{id}', function (Request $request, Response $response) {
 	$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
 
 	// wrap it in data object

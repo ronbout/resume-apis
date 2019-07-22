@@ -73,7 +73,10 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	
 	$response_data = create_lower_object( $response_data, 'agency');
 	
-	$query = 'SELECT id, highlight, sequence, skillIds, skillNames FROM candidate_highlights_skills_vw WHERE candidateId = ?';
+	$query = 'SELECT id, highlight, sequence, skillIds, skillNames, candidateSkillIds 
+							FROM candidate_highlights_skills_vw 
+							WHERE candidateId = ?
+							ORDER BY sequence';
 	$highlights = process_highlights($request, $response, $db, $query, array($id), $errCode);
 	if ($errCode) {
 		return $highlights;
@@ -124,7 +127,9 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			$job_data = create_lower_object( $job_data, 'contactPerson');
 			$job_data = create_lower_object( $job_data, 'company');
 
-			$query = 'SELECT id, highlight, sequence, includeInSummary, skillIds, skillNames FROM candidate_job_highlights_skills_vw WHERE jobId = ?';
+			$query = 'SELECT id, highlight, sequence, includeInSummary, skillIds, skillNames, candidateSkillIds 
+									FROM candidate_job_highlights_skills_vw 
+									WHERE jobId = ?';
 			$highlights = process_highlights($request, $response, $db, $query, array($job_data['id']), $errCode);
 			if ($errCode) {
 				return $highlights;
@@ -256,7 +261,7 @@ $app->post ( '/candidates', function (Request $request, Response $response) {
 	// everything was fine. return success and the full data object
 	$data ['id'] = $candidate_id;
 	$data ['personId'] = $person_id;
-	
+
 	// wrap it in data object
 	$data = array (
 			'data' => $data 
@@ -265,6 +270,145 @@ $app->post ( '/candidates', function (Request $request, Response $response) {
 	return $newResponse;
 } );
 
+
+$app->put ( '/candidates/{id}/highlights', function (Request $request, Response $response) {
+	$id = $request->getAttribute ( 'id' );
+	$post_data = $request->getParsedBody ();
+	$data = array ();
+	
+	if (! isset($post_data['highlights']) || !is_array($post_data['highlights'])) {
+		$data ['error'] = true;
+		$data ['message'] = 'An array of highlights is required';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	$highlights = $post_data['highlights'];
+	
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	/**
+	 * 
+	 * 1) delete the original highlights
+	 * 
+	 * 2) loop through highlights building separate sql for those
+	 * 		with id's and those w/o
+	 * 
+	 * 3) run the sql for the highlights with id's
+	 * 
+	 * 4) run the sql for the highlights w/o id's and insert them,
+	 * 		getting the new id's and placing them in the post data
+	 * 
+	 * 5) Loop through the newly id'd highlights and build the sql
+	 *  	to insert highlight skills using the highlight id's from steps 3,4
+	 * 
+	 * 6) return the post_data with the new id's
+	 * 
+	 */
+
+	// 1)
+	$query = 'DELETE FROM candidatehighlights WHERE candidateId = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	// 2)
+	$query_with_ids =	'INSERT INTO candidatehighlights
+												(id, candidateId, highlight, sequence)
+										 VALUES ';
+	$query_wo_ids = 'INSERT INTO candidatehighlights
+											(candidateId, highlight, sequence)
+									 VALUES ';
+	$insert_data_w = array();
+	$insert_data_wo = array();
+
+	foreach($highlights as $highlight) {
+		if ($highlight['id'] === '') {
+			$query_wo_ids .= ' (?, ?, ?),';
+			$insert_data_wo[] = $id;
+			$insert_data_wo[] = $highlight['highlight'];
+			$insert_data_wo[] = $highlight['sequence'];
+		} else {
+			$query_with_ids .= ' (?, ?, ?, ?),';
+			$insert_data_w[] = $highlight['id'];
+			$insert_data_w[] = $id;
+			$insert_data_w[] = $highlight['highlight'];
+			$insert_data_w[] = $highlight['sequence'];
+		}
+	}
+
+	// 3)
+	if ($insert_data_w) {
+		$highlight_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false );
+		if ($errCode) {
+			return $highlight_resp;
+		}
+	}
+
+	// 4)
+	if ($insert_data_wo) {
+		$highlight_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false );
+		if ($errCode) {
+			return $highlight_resp;
+		}
+		// need to get insert id.  lastInsertId is actually the first of
+		// the group, so can just increment by 1 from there.
+		if (! $insert_id = $db->lastInsertId() ) {
+			// unknown insert error - should NOT get here
+			$return_data ['error'] = true;
+			$return_data ['errorCode'] = 45002; // unknown error
+			$return_data ['message'] = "Unknown error updating Candidate Highlight.  Could not retrieve inserted id's";
+			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+			return $newResponse;
+		}
+		// loop through the highlights inserting the new id's by incrementing from insert_id
+		foreach($highlights as &$highlight) {
+			if ($highlight['id'] === '') {
+				$highlight['id'] = $insert_id++;
+			}
+		}
+
+	}
+
+	// 5)
+	/***
+	 * 
+	 * crap  candidate skill Id!!!
+	 * 
+	 */
+	$query = 'INSERT INTO candidatehighlights_skills
+								(candidateHighlightsId, candidateSkillId)
+						VALUES ';
+
+
+
+
+
+	// everything was fine. return success and
+	// the original post data with the id's added
+
+
+	// wrap it in data object
+	$data = array (
+			'data' => $response_data
+	);
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
+} );
 
 function process_highlights($request, $response, $db, $query, $id_parm, &$errCode) {
 	$highlights = pdo_exec( $request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false );
@@ -277,14 +421,16 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 		// then, convert the 2 fields into a single array of objects
 		$highlight['skillIds'] = (array_key_exists('skillIds', $highlight) && $highlight['skillIds']) ? explode('|', $highlight['skillIds']) : null;
 		$highlight['skillNames'] = (array_key_exists('skillNames', $highlight) && $highlight['skillNames']) ? explode('|', $highlight['skillNames']) : null;
+		$highlight['candidateSkillIds'] = (array_key_exists('candidateSkillIds', $highlight) && $highlight['candidateSkillIds']) ? explode('|', $highlight['candidateSkillIds']) : null;
 		
 		if ($highlight['skillIds']) {
-			$highlight['skills'] = create_obj_from_arrays(array($highlight['skillIds'], $highlight['skillNames']), array('id', 'name'));
+			$highlight['skills'] = create_obj_from_arrays(array($highlight['skillIds'], $highlight['skillNames'], $highlight['candidateSkillIds']), array('id', 'name', 'candidateSkillId'));
 		} else {
 			$highlight['skills'] = array();
 		}
 		unset($highlight['skillIds']);
 		unset($highlight['skillNames']);
+		unset($highlight['candidateSkillIds']);
 	}
 
 	return $highlights;
