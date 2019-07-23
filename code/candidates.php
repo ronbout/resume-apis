@@ -272,6 +272,7 @@ $app->post ( '/candidates', function (Request $request, Response $response) {
 
 
 $app->put ( '/candidates/{id}/highlights', function (Request $request, Response $response) {
+
 	$id = $request->getAttribute ( 'id' );
 	$post_data = $request->getParsedBody ();
 	$data = array ();
@@ -306,6 +307,8 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	 * 
 	 * 2) loop through highlights building separate sql for those
 	 * 		with id's and those w/o
+	 * 		-- also build a list of the skills that have attached candidateskill Ids
+	 * 		-- that way I have to do as few lookups as possible
 	 * 
 	 * 3) run the sql for the highlights with id's
 	 * 
@@ -320,6 +323,8 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	 */
 
 	// 1)
+	// because CASCADE is set up in the foreign key, deleting the candidatehighlights will 
+	// result in the candidatehighlights_skills also being deleted.
 	$query = 'DELETE FROM candidatehighlights WHERE candidateId = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
 	if ($errCode) {
@@ -336,6 +341,8 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	$insert_data_w = array();
 	$insert_data_wo = array();
 
+	$candidate_skills =  array();
+
 	foreach($highlights as $highlight) {
 		if ($highlight['id'] === '') {
 			$query_wo_ids .= ' (?, ?, ?),';
@@ -349,10 +356,20 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 			$insert_data_w[] = $highlight['highlight'];
 			$insert_data_w[] = $highlight['sequence'];
 		}
+
+		// check for skills and add to candidate_skills array
+		// if a candidate skills id is present, else create it
+		if ($highlight['skills']) {
+			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $highlight['skills'], $id);
+			if ($errCode) {
+				return $candidate_skills;
+			}
+		}
 	}
 
 	// 3)
 	if ($insert_data_w) {
+		$query_with_ids = trim($query_with_ids, ',');
 		$highlight_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false );
 		if ($errCode) {
 			return $highlight_resp;
@@ -361,6 +378,7 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 
 	// 4)
 	if ($insert_data_wo) {
+		$query_wo_ids = trim($query_wo_ids, ',');
 		$highlight_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false );
 		if ($errCode) {
 			return $highlight_resp;
@@ -385,26 +403,39 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	}
 
 	// 5)
-	/***
-	 * 
-	 * crap  candidate skill Id!!!
-	 * 
-	 */
 	$query = 'INSERT INTO candidatehighlights_skills
 								(candidateHighlightsId, candidateSkillId)
 						VALUES ';
+	$insert_array = array();
+	foreach($highlights as &$highlight) {
+		if ($highlight['skills']) {
+			$highlight_id = $highlight['id'];
+			foreach ($highlight['skills'] as &$skill) {
+				$query .= ' (?, ?),';
+				$insert_array[] = $highlight_id;
+				if ($skill['candidateSkillId']) {
+					$insert_array[] = $skill['candidateSkillId'];
+				} else {
+					$insert_array[] = $candidate_skills[$skill['id']];
+					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
+				}
 
+			}
+		}
+	}
 
-
-
+	if ($insert_array) {
+		$query = trim($query, ',');
+		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Highlight Skill', $errCode, false, false, false, false );
+		if ($errCode) {
+			return $ret;
+		}
+	}
 
 	// everything was fine. return success and
 	// the original post data with the id's added
-
-
-	// wrap it in data object
 	$data = array (
-			'data' => $response_data
+			'data' => $highlights
 	);
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
@@ -434,4 +465,21 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 	}
 
 	return $highlights;
+}
+
+function build_candidate_skills($request, $response, $db, &$errCode, $cand_skills_list, $skill_list, $cand_id) {
+	$query = 'SELECT get_candidate_skill_id(?, ?)  AS csid';
+
+	foreach($skill_list as $skill) {
+		if (!array_key_exists($skill['id'], $cand_skills_list)) {
+			$insert_array = array($cand_id, $skill['id']);
+			$cs_id = pdo_exec( $request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Candidate Skill', $errCode, false, false, true, false );
+			if ($errCode) {
+				return $cs_id;
+			}
+			$cand_skills_list[$skill['id']] = $cs_id['csid'];
+		}
+	}
+
+	return $cand_skills_list;
 }
