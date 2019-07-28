@@ -486,9 +486,11 @@ $app->put ( '/candidates/{id}/objective', function (Request $request, Response $
 	}
 
 	$data = array(
-		'id' => $cand_id,
-		'objective' => $objective,
-		'executiveSummary' => $executive_summary
+		'data' => array(
+			'id' => $cand_id,
+			'objective' => $objective,
+			'executiveSummary' => $executive_summary
+		)
 	);
 
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
