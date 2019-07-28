@@ -441,6 +441,60 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	return $newResponse;
 } );
 
+
+$app->put ( '/candidates/{id}/objective', function (Request $request, Response $response) {
+
+	$cand_id = $request->getAttribute ( 'id' );
+	$post_data = $request->getParsedBody ();
+	$data = array ();
+	
+	if (! isset($post_data['objective']) || !isset($post_data['executiveSummary'])) {
+		$data ['error'] = true;
+		$data ['message'] = 'Objective and Executive Summary are required';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	$objective = isset ( $post_data ['objective'] ) ? filter_var ( $post_data ['objective'], FILTER_SANITIZE_STRING ) : '';
+	$executive_summary = isset ( $post_data ['executiveSummary'] ) ? filter_var ( $post_data ['executiveSummary'], FILTER_SANITIZE_STRING ) : '';
+	
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$query = 'UPDATE candidate
+							SET objective = ?,
+									executiveSummary = ?
+							WHERE id = ?';
+
+	$insert_data = array($objective, $executive_summary, $cand_id);
+
+	$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Updating Candidate', $errCode, false, false, false );
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$data = array(
+		'id' => $cand_id,
+		'objective' => $objective,
+		'executiveSummary' => $executive_summary
+	);
+
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
+} );
+
 function process_highlights($request, $response, $db, $query, $id_parm, &$errCode) {
 	$highlights = pdo_exec( $request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false );
 	if ($errCode) {
