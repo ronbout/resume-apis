@@ -98,25 +98,20 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			$job_data['skillIds'] = (array_key_exists('skillIds', $job_data) && $job_data['skillIds']) ? explode('|', $job_data['skillIds']) : null;
 			$job_data['skillNames'] = (array_key_exists('skillNames', $job_data) && $job_data['skillNames']) ? explode('|', $job_data['skillNames']) : null;
 			$job_data['skillPcts'] = (array_key_exists('skillPcts', $job_data) && $job_data['skillPcts']) ? explode('|', $job_data['skillPcts']) : null;
+			$job_data['candidateSkillIds'] = (array_key_exists('candidateSkillIds', $job_data) && $job_data['candidateSkillIds']) ? explode('|', $job_data['candidateSkillIds']) : null;
 			$job_data['skillTags'] = (array_key_exists('skillTags', $job_data) && $job_data['skillTags']) ? explode('|', $job_data['skillTags']) : null;
 			$job_data['skillTagNames'] = (array_key_exists('skillTagNames', $job_data) && $job_data['skillTagNames']) ? explode('|', $job_data['skillTagNames']) : null;
 
-
-			/**
-			 * 
-			 * add skillTags and skillTagnames back in
-			 * 
-			 */
-
 			if ($job_data['skillIds']) {
-				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['skillTags'], $job_data['skillTagNames']);
-				$job_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'skillTag', 'skillTagName'));
+				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['candidateSkillIds'], $job_data['skillTags'], $job_data['skillTagNames']);
+				$job_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'candidateSkillId', 'skillTag', 'skillTagName'));
 			} else {
 				$job_data['skills'] = array();
 			}
 			unset($job_data['skillIds']);
 			unset($job_data['skillNames']);
 			unset($job_data['skillPcts']);
+			unset($job_data['candidateSkillIds']);
 			unset($job_data['skillTestedFlag']);
 			unset($job_data['skillTestResults']);
 			unset($job_data['skillTotalMonths']);
@@ -529,14 +524,6 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 	if ($errCode) {
 		return $response_data;
 	}
-
-/***
- * 
- * 
- * CONVERT FROM HIGHLIGHTS TO EDUCATION, BUT MUCH REMAINS THE SAME
- * 
- */
-
 
 	/**
 	 * 
