@@ -502,180 +502,209 @@ $app->put ( '/candidates/{id}/objective', function (Request $request, Response $
 
 $app->put ( '/candidates/{id}/education', function (Request $request, Response $response) {
 
-// 	$id = $request->getAttribute ( 'id' );
-// 	$post_data = $request->getParsedBody ();
-// 	$data = array ();
+	$cand_id = $request->getAttribute ( 'id' );
+	$post_data = $request->getParsedBody ();
+	$data = array ();
 	
-// 	if (! isset($post_data['education']) || !is_array($post_data['education'])) {
-// 		$data ['error'] = true;
-// 		$data ['message'] = 'An array of education is required';
-// 		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-// 		return $newResponse;
-// 	}
+	if (! isset($post_data['education']) || !is_array($post_data['education'])) {
+		$data ['error'] = true;
+		$data ['message'] = 'An array of education is required';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
 
-// 	$education = $post_data['education'];
+	$education = $post_data['education'];
 	
-// 	// login to the database. if unsuccessful, the return value is the
-// 	// Response to send back, otherwise the db connection;
-// 	$errCode = 0;
-// 	$db = db_connect ( $request, $response, $errCode );
-// 	if ($errCode) {
-// 		return $db;
-// 	}
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
 
-// 	// need to make sure that this record id exists to update
-// 	$query = 'SELECT * FROM candidate WHERE id = ?';
-// 	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true);
-// 	if ($errCode) {
-// 		return $response_data;
-// 	}
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
 
-// /***
-//  * 
-//  * 
-//  * CONVERT FROM HIGHLIGHTS TO EDUCATION, BUT MUCH REMAINS THE SAME
-//  * 
-//  */
+/***
+ * 
+ * 
+ * CONVERT FROM HIGHLIGHTS TO EDUCATION, BUT MUCH REMAINS THE SAME
+ * 
+ */
 
 
-// 	/**
-// 	 * 
-// 	 * 1) delete the original highlights
-// 	 * 
-// 	 * 2) loop through highlights building separate sql for those
-// 	 * 		with id's and those w/o
-// 	 * 		-- also build a list of the skills that have attached candidateskill Ids
-// 	 * 		-- that way I have to do as few lookups as possible
-// 	 * 
-// 	 * 3) run the sql for the highlights with id's
-// 	 * 
-// 	 * 4) run the sql for the highlights w/o id's and insert them,
-// 	 * 		getting the new id's and placing them in the post data
-// 	 * 
-// 	 * 5) Loop through the newly id'd highlights and build the sql
-// 	 *  	to insert highlight skills using the highlight id's from steps 3,4
-// 	 * 
-// 	 * 6) return the post_data with the new id's
-// 	 * 
-// 	 */
+	/**
+	 * 
+	 * 1) delete the original education
+	 * 
+	 * 2) loop through education building separate sql for those
+	 * 		with id's and those w/o
+	 * 		-- also build a list of the skills that have attached candidateskill Ids
+	 * 		-- that way I have to do as few lookups as possible
+	 * 
+	 * 3) run the sql for the education with id's
+	 * 
+	 * 4) run the sql for the education w/o id's and insert them,
+	 * 		getting the new id's and placing them in the post data
+	 * 
+	 * 5) Loop through the newly id'd education and build the sql
+	 *  	to insert skills using the education id's from steps 3,4
+	 * 
+	 * 6) return the post_data with the new id's
+	 * 
+	 */
 
-// 	// 1)
-// 	// because CASCADE is set up in the foreign key, deleting the candidatehighlights will 
-// 	// result in the candidatehighlights_skills also being deleted.
-// 	$query = 'DELETE FROM candidatehighlights WHERE candidateId = ?';
-// 	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
-// 	if ($errCode) {
-// 		return $response_data;
-// 	}
+	// 1)
+	// because CASCADE is set up in the foreign key, deleting the candidateeducation will 
+	// result in the candidatehighlights_skills also being deleted.
+	$query = 'DELETE FROM candidateeducation WHERE candidateId = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Deleting Candidate Education', $errCode, false, false, false);
+	if ($errCode) {
+		return $response_data;
+	}
 
-// 	// 2)
-// 	$query_with_ids =	'INSERT INTO candidatehighlights
-// 												(id, candidateId, highlight, sequence)
-// 										 VALUES ';
-// 	$query_wo_ids = 'INSERT INTO candidatehighlights
-// 											(candidateId, highlight, sequence)
-// 									 VALUES ';
-// 	$insert_data_w = array();
-// 	$insert_data_wo = array();
+	// 2)
+	$query_wo_ids = 'INSERT INTO candidateeducation
+											(candidateId, schoolName, schoolMunicipality, schoolRegion, schoolCountry,
+											degreeName, degreeType, degreeMajor, degreeMinor, startDate, endDate)
+										VALUES ';
+	$query_with_ids =	'INSERT INTO candidateeducation
+												(id, candidateId, schoolName, schoolMunicipality, schoolRegion, schoolCountry,
+												 degreeName, degreeType, degreeMajor, degreeMinor, startDate, endDate)
+										 VALUES ';
+	$insert_data_w = array();
+	$insert_data_wo = array();
 
-// 	$candidate_skills =  array();
+	$candidate_skills =  array();
 
-// 	foreach($highlights as $highlight) {
-// 		if ($highlight['id'] === '') {
-// 			$query_wo_ids .= ' (?, ?, ?),';
-// 			$insert_data_wo[] = $id;
-// 			$insert_data_wo[] = $highlight['highlight'];
-// 			$insert_data_wo[] = $highlight['sequence'];
-// 		} else {
-// 			$query_with_ids .= ' (?, ?, ?, ?),';
-// 			$insert_data_w[] = $highlight['id'];
-// 			$insert_data_w[] = $id;
-// 			$insert_data_w[] = $highlight['highlight'];
-// 			$insert_data_w[] = $highlight['sequence'];
-// 		}
+	foreach($education as $ed) {
+		$school_name = isset ( $ed ['schoolName'] ) ? filter_var ( $ed ['schoolName'], FILTER_SANITIZE_STRING ) : '';
+		$school_municipality = isset ( $ed ['schoolMunicipality'] ) ? filter_var ( $ed ['schoolMunicipality'], FILTER_SANITIZE_STRING ) : null;
+		$school_region = isset ( $ed ['schoolRegion'] ) ? filter_var ( $ed ['schoolRegion'], FILTER_SANITIZE_STRING ) : null;
+		$school_country = isset ( $ed ['schoolCountry'] ) ? filter_var ( $ed ['schoolCountry'], FILTER_SANITIZE_STRING ) : null;
+		$degree_name = isset ( $ed ['degreeName'] ) ? filter_var ( $ed ['degreeName'], FILTER_SANITIZE_STRING ) : '';
+		$degree_type = isset ( $ed ['degreeType'] ) ? filter_var ( $ed ['degreeType'], FILTER_SANITIZE_STRING ) : 'non-Degree';
+		$degree_major = isset ( $ed ['degreeMajor'] ) ? filter_var ( $ed ['degreeMajor'], FILTER_SANITIZE_STRING ) : null;
+		$degree_minor = isset ( $ed ['degreeMinor'] ) ? filter_var ( $ed ['degreeMinor'], FILTER_SANITIZE_STRING ) : null;
+		$start_date = isset ( $ed ['startDate'] ) && $ed['startDate'] ? filter_var ( $ed ['startDate'], FILTER_SANITIZE_STRING ) : null;
+		$end_date = isset ( $ed ['endDate'] ) && $ed['endDate'] ? filter_var ( $ed ['endDate'], FILTER_SANITIZE_STRING ) : null;
 
-// 		// check for skills and add to candidate_skills array
-// 		// if a candidate skills id is present, else create it
-// 		if ($highlight['skills']) {
-// 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $highlight['skills'], $id);
-// 			if ($errCode) {
-// 				return $candidate_skills;
-// 			}
-// 		}
-// 	}
+		if ($ed['id'] === '') {
+			$query_wo_ids .= ' (?,?,?,?,?,?,?,?,?,?,?),';
+			$insert_data_wo[] = $cand_id;
+			$insert_data_wo[] = $school_name;
+			$insert_data_wo[] = $school_municipality;
+			$insert_data_wo[] = $school_region;
+			$insert_data_wo[] = $school_country;
+			$insert_data_wo[] = $degree_name;
+			$insert_data_wo[] = $degree_type;
+			$insert_data_wo[] = $degree_major;
+			$insert_data_wo[] = $degree_minor;
+			$insert_data_wo[] = $start_date;
+			$insert_data_wo[] = $end_date;
+		} else {
+			$query_with_ids .= ' (?,?,?,?,?,?,?,?,?,?,?,?),';
+			$insert_data_w[] = $ed['id'];
+			$insert_data_w[] = $cand_id;
+			$insert_data_w[] = $school_name;
+			$insert_data_w[] = $school_municipality;
+			$insert_data_w[] = $school_region;
+			$insert_data_w[] = $school_country;
+			$insert_data_w[] = $degree_name;
+			$insert_data_w[] = $degree_type;
+			$insert_data_w[] = $degree_major;
+			$insert_data_w[] = $degree_minor;
+			$insert_data_w[] = $start_date;
+			$insert_data_w[] = $end_date;
+		}
 
-// 	// 3)
-// 	if ($insert_data_w) {
-// 		$query_with_ids = trim($query_with_ids, ',');
-// 		$highlight_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false );
-// 		if ($errCode) {
-// 			return $highlight_resp;
-// 		}
-// 	}
+		// check for skills and add to candidate_skills array
+		// if a candidate skills id is present, else create it
+		if ($ed['skills']) {
+			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $ed['skills'], $cand_id);
+			if ($errCode) {
+				return $candidate_skills;
+			}
+		}
+	}
 
-// 	// 4)
-// 	if ($insert_data_wo) {
-// 		$query_wo_ids = trim($query_wo_ids, ',');
-// 		$highlight_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false );
-// 		if ($errCode) {
-// 			return $highlight_resp;
-// 		}
-// 		// need to get insert id.  lastInsertId is actually the first of
-// 		// the group, so can just increment by 1 from there.
-// 		if (! $insert_id = $db->lastInsertId() ) {
-// 			// unknown insert error - should NOT get here
-// 			$return_data ['error'] = true;
-// 			$return_data ['errorCode'] = 45002; // unknown error
-// 			$return_data ['message'] = "Unknown error updating Candidate Highlight.  Could not retrieve inserted id's";
-// 			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
-// 			return $newResponse;
-// 		}
-// 		// loop through the highlights inserting the new id's by incrementing from insert_id
-// 		foreach($highlights as &$highlight) {
-// 			if ($highlight['id'] === '') {
-// 				$highlight['id'] = $insert_id++;
-// 			}
-// 		}
+	// 3)
+	if ($insert_data_w) {
+		$query_with_ids = trim($query_with_ids, ',');
+		$ed_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Education', $errCode, false, false, false );
+		if ($errCode) {
+			return $ed_resp;
+		}
+	}
 
-// 	}
+	// 4)
+	if ($insert_data_wo) {
+		$query_wo_ids = trim($query_wo_ids, ',');
+		$ed_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Inserting Candidate Education', $errCode, false, false, false );
+		if ($errCode) {
+			return $ed_resp;
+		}
+		// need to get insert id.  lastInsertId is actually the first of
+		// the group, so can just increment by 1 from there.
+		if (! $insert_id = $db->lastInsertId() ) {
+			// unknown insert error - should NOT get here
+			$return_data ['error'] = true;
+			$return_data ['errorCode'] = 45002; // unknown error
+			$return_data ['message'] = "Unknown error updating Candidate Education.  Could not retrieve inserted id's";
+			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+			return $newResponse;
+		}
+		// loop through the highlights inserting the new id's by incrementing from insert_id
+		foreach($education as &$ed) {
+			if ($ed['id'] === '') {
+				$ed['id'] = $insert_id++;
+			}
+		}
 
-// 	// 5)
-// 	$query = 'INSERT INTO candidatehighlights_skills
-// 								(candidateHighlightsId, candidateSkillId)
-// 						VALUES ';
-// 	$insert_array = array();
-// 	foreach($highlights as &$highlight) {
-// 		if ($highlight['skills']) {
-// 			$highlight_id = $highlight['id'];
-// 			foreach ($highlight['skills'] as &$skill) {
-// 				$query .= ' (?, ?),';
-// 				$insert_array[] = $highlight_id;
-// 				if ($skill['candidateSkillId']) {
-// 					$insert_array[] = $skill['candidateSkillId'];
-// 				} else {
-// 					$insert_array[] = $candidate_skills[$skill['id']];
-// 					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
-// 				}
+	}
 
-// 			}
-// 		}
-// 	}
+	// 5)
+	$query = 'INSERT INTO candidateeducation_skills
+								(educationId, candidateSkillId)
+						VALUES ';
+	$insert_array = array();
+	foreach($education as &$ed) {
+		if ($ed['skills']) {
+			$ed_id = $ed['id'];
+			foreach ($ed['skills'] as &$skill) {
+				$query .= ' (?, ?),';
+				$insert_array[] = $ed_id;
+				if ($skill['candidateSkillId']) {
+					$insert_array[] = $skill['candidateSkillId'];
+				} else {
+					$insert_array[] = $candidate_skills[$skill['id']];
+					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
+				}
 
-// 	if ($insert_array) {
-// 		$query = trim($query, ',');
-// 		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Highlight Skill', $errCode, false, false, false, false );
-// 		if ($errCode) {
-// 			return $ret;
-// 		}
-// 	}
+			}
+		}
+	}
 
-// 	// everything was fine. return success and
-// 	// the original post data with the id's added
-// 	$data = array (
-// 			'data' => $highlights
-// 	);
-// 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
-// 	return $newResponse;
+	if ($insert_array) {
+		$query = trim($query, ',');
+		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Education Skill', $errCode, false, false, false, false );
+		if ($errCode) {
+			return $ret;
+		}
+	}
+
+	// everything was fine. return success and
+	// the original post data with the id's added
+	$data = array (
+			'data' => $education
+	);
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
 } );
 
 
