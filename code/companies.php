@@ -129,33 +129,14 @@ $app->get ( '/companies/{id}', function (Request $request, Response $response) {
 		return $db;
 	}
 	
-	$query = 'SELECT * FROM company WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	$response_data = retrieve_company_by_id($request, $response, $db, $errCode, $id);
 	if ($errCode) {
-		return $db;
+		return $response_data;
 	}
-	
-	// now to pull out Contact Person info if it exists
-	if ($response_data['contactPersonId'] !== null) {
-		// read from person view with phone numbers
-	
-		$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
-		$person_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Contact Person', $errCode, true, false, true, false );
-		if ($errCode) {
-			return $db;
-		}
-		$contactPerson = $person_data;
-	} else {
-		$contactPerson = null;
-	}
-
-	unset($response_data['contactPersonId']);
-	$response_data['contactPerson'] = $contactPerson;
 
 	$data = array ('data' => $response_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
-
 
 $app->post ( '/companies', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
@@ -225,3 +206,103 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
 } );
+
+
+$app->put ( '/companies/{id}', function (Request $request, Response $response) {
+	$company_id = $request->getAttribute ( 'id' );
+	$post_data = $request->getParsedBody ();
+	$data = array ();
+
+	$table_cols = array (
+			'name',
+			'description',
+			'companyPhone',
+			'contactPersonId',
+			'addressLine1',
+			'addressLine2',
+			'municipality',
+			'region',
+			'postalCode',
+			'countryCode',
+			'email',
+			'website'
+	);
+
+	// make sure that at least one field exists for updating
+	// return val is array with <0> = sql and <1> = array for executing prepared statement
+	$sql_cols = build_update_SQL_cols ( $post_data, $table_cols );
+	$sql_update_cols = $sql_cols [0];
+	$sql_array = $sql_cols [1];
+	
+	if (! $sql_update_cols) {
+		$data ['error'] = true;
+		$data ['message'] = 'At least one column is required.';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+	
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM company WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($company_id), 'Retrieving Company', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	// have to build SQL based on which fields were passed in_array
+	$query = 'UPDATE company SET ' . $sql_update_cols . ' WHERE id = ?';
+	// add id to end of execute array
+	$sql_array [] = $company_id;
+
+	$response_data = pdo_exec( $request, $response, $db, $query, $sql_array, 'Updating Company', $errCode, false, false, false );
+	if ($errCode) {
+		return $response_data;
+	}
+
+	// everything was fine. return full record
+	$response_data = retrieve_company_by_id($request, $response, $db, $errCode, $company_id);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	// wrap it in data object
+	$data = array (
+			'data' => $response_data
+	);
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
+} );
+
+function retrieve_company_by_id($request, $response, $db, &$errCode, $id) {
+	$query = 'SELECT * FROM company WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	if ($errCode) {
+		return $db;
+	}
+	
+	// now to pull out Contact Person info if it exists
+	if ($response_data['contactPersonId'] !== null) {
+		// read from person view with phone numbers
+	
+		$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
+		$person_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Contact Person', $errCode, true, false, true, false );
+		if ($errCode) {
+			return $db;
+		}
+		$contactPerson = $person_data;
+	} else {
+		$contactPerson = null;
+	}
+
+	unset($response_data['contactPersonId']);
+	$response_data['contactPerson'] = $contactPerson;
+
+	return $response_data;
+}
