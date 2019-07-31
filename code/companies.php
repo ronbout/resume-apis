@@ -298,7 +298,23 @@ function retrieve_company_by_id($request, $response, $db, &$errCode, $id) {
 		}
 		$contactPerson = $person_data;
 	} else {
-		$contactPerson = null;
+		// for sake of react forms, need to put empty data in place
+		$contactPerson = array(
+			'id' => null,
+			'formattedName' => null,
+			'givenName' => null,
+			'familyName' => null,
+			'mobilePhone' => null,
+			'workPhone' => null,
+			'addressLine1' => null,
+			'addressLine2' => null,
+			'municipality' => null,
+			'region' => null,
+			'postalCode' => null,
+			'countryCode' => null,
+			'email1' => null,
+			'website' => null
+		);
 	}
 
 	unset($response_data['contactPersonId']);
