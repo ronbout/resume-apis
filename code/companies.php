@@ -154,7 +154,7 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 	$email = isset ( $post_data ['email'] ) ? filter_var ( $post_data ['email'], FILTER_SANITIZE_STRING ) : null;
 	$website = isset ( $post_data ['website'] ) ? filter_var ( $post_data ['website'], FILTER_SANITIZE_STRING ) : null;
 
-	$contact_person_id = isset ( $post_data ['contactPersonId'] ) ? filter_var ( $post_data ['contactPersonId'], FILTER_SANITIZE_STRING ) : null;
+	$contact_person_id = isset ( $post_data ['contactPersonId']) && $post_data['contactPersonId']  ? filter_var ( $post_data ['contactPersonId'], FILTER_SANITIZE_STRING ) : null;
 	
 	if ( !$name ) {
 		$data ['error'] = true;
@@ -196,12 +196,15 @@ $app->post ( '/companies', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 
-	// everything was fine. return success and the full data object
-	$data = $post_data;
-	$data ['id'] = $company_id;
+	// everything was fine. return full record
+	$response_data = retrieve_company_by_id($request, $response, $db, $errCode, $company_id);
+	if ($errCode) {
+		return $response_data;
+	}
+
 	// wrap it in data object
 	$data = array (
-			'data' => $data 
+			'data' => $response_data
 	);
 	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
 	return $newResponse;
@@ -288,7 +291,7 @@ function retrieve_company_by_id($request, $response, $db, &$errCode, $id) {
 	}
 	
 	// now to pull out Contact Person info if it exists
-	if ($response_data['contactPersonId'] !== null) {
+	if ($response_data['contactPersonId']) {
 		// read from person view with phone numbers
 	
 		$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
