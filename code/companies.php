@@ -292,7 +292,7 @@ function retrieve_company_by_id($request, $response, $db, &$errCode, $id) {
 		// read from person view with phone numbers
 	
 		$query = 'SELECT * FROM person_with_phonetypes_vw WHERE id = ?';
-		$person_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Contact Person', $errCode, true, false, true, false );
+		$person_data = pdo_exec( $request, $response, $db, $query, array($response_data['contactPersonId']), 'Retrieving Contact Person', $errCode, true, false, true, false );
 		if ($errCode) {
 			return $db;
 		}
