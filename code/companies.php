@@ -56,8 +56,9 @@ $app->get ( '/companies/search', function (Request $request, Response $response)
 	
 	$name = isset ($query['name']) ? filter_var ( $query['name'] ) : '';
 	$email = isset ($query['email']) ? filter_var ( $query['email'] ) : '';
+	$phone = isset ($query['phone']) ? filter_var ( $query['phone'] ) : '';
 
-	if (!$name && !$email) {
+	if (!$name && !$email && !$phone) {
 		$data ['error'] = true;
 		$data ['message'] = 'Search field is required.';
 		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
@@ -72,27 +73,30 @@ $app->get ( '/companies/search', function (Request $request, Response $response)
 		return $db;
 	}
 
-	// check for offset and limit and add to Select
-	$q_vars = array_change_key_case($request->getQueryParams(), CASE_LOWER);
-	$limit_clause = '';
-	if (isset($q_vars['limit']) && is_numeric($q_vars['limit'])) {
-		$limit_clause .= ' LIMIT ' . $q_vars['limit'] . ' ';
+	$query = '';
+	$name_query =	"SELECT * 
+									FROM company_vw
+									WHERE jws_score(:name, name) > 0.8";
+	$email_query = "SELECT *
+									FROM company_vw
+									WHERE email = :email";
+	$phone_query = "SELECT * 
+									FROM company_vw
+									WHERE companyPHone = :phone";
+	// 6 possible combos of search criteria
+	$sql_parms = array();
+	if ($name) {
+		$query = $name_query;
+		$sql_parms[':name'] = $name;
 	}
-	if (isset($q_vars['offset']) && is_numeric($q_vars['offset'])) {
-		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
-	}
-
-	// beause the email should be unique, test only that if it is present, otherwise test name
-	$where_clause = ' WHERE ';
 	if ($email) {
-		$where_clause .= 'email = :email ';
-		$sql_parms = array('email' => $email);
-	} else {
-		$where_clause .= 'jws_score(:name, name) > 0.8 ';
-		$sql_parms = array('name' => $name);
+		$query = $query ? $query . ' UNION ' . $email_query : $email_query;
+		$sql_parms[':email'] = $email;
 	}
-
-	$query = 'SELECT * FROM company_vw ' . $where_clause . $limit_clause;
+	if ($phone) {
+		$query = $query ? $query . ' UNION ' . $phone_query : $phone_query;
+		$sql_parms[':phone'] = $phone;
+	}
 
 	$response_data = pdo_exec( $request, $response, $db, $query, $sql_parms, 'Searching Companies', $errCode, false, true, true, false );
 	if ($errCode) {
