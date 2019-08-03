@@ -99,11 +99,11 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			$job_data['skillNames'] = (array_key_exists('skillNames', $job_data) && $job_data['skillNames']) ? explode('|', $job_data['skillNames']) : null;
 			$job_data['skillPcts'] = (array_key_exists('skillPcts', $job_data) && $job_data['skillPcts']) ? explode('|', $job_data['skillPcts']) : null;
 			$job_data['candidateSkillIds'] = (array_key_exists('candidateSkillIds', $job_data) && $job_data['candidateSkillIds']) ? explode('|', $job_data['candidateSkillIds']) : null;
-			$job_data['skillTags'] = (array_key_exists('skillTags', $job_data) && $job_data['skillTags']) ? explode('|', $job_data['skillTags']) : null;
-			$job_data['skillTagNames'] = (array_key_exists('skillTagNames', $job_data) && $job_data['skillTagNames']) ? explode('|', $job_data['skillTagNames']) : null;
+			$job_data['resumeTechtags'] = (array_key_exists('resumeTechtags', $job_data) && $job_data['resumeTechtags']) ? explode('|', $job_data['resumeTechtags']) : null;
+			$job_data['resumeTechtagNames'] = (array_key_exists('resumeTechtagNames', $job_data) && $job_data['resumeTechtagNames']) ? explode('|', $job_data['resumeTechtagNames']) : null;
 
 			if ($job_data['skillIds']) {
-				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['candidateSkillIds'], $job_data['skillTags'], $job_data['skillTagNames']);
+				$data_array = array($job_data['skillIds'], $job_data['skillNames'], $job_data['skillPcts'], $job_data['candidateSkillIds'], $job_data['resumeTechtags'], $job_data['resumeTechtagNames']);
 				$job_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'candidateSkillId', 'techtagId', 'techtagName'));
 			} else {
 				$job_data['skills'] = array();
@@ -115,8 +115,8 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			unset($job_data['skillTestedFlag']);
 			unset($job_data['skillTestResults']);
 			unset($job_data['skillTotalMonths']);
-			unset($job_data['skillTags']);
-			unset($job_data['skillTagNames']);
+			unset($job_data['resumeTechtags']);
+			unset($job_data['resumeTechtagNames']);
 
 			// break out the contactPerson and company data into sub objects
 			$job_data = create_lower_object( $job_data, 'contactPerson');
