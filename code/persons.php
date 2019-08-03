@@ -91,7 +91,6 @@ $app->get ( '/persons/search', function (Request $request, Response $response) {
 		$sql_parms[':phone'] = $phone;
 	}
 				
-
 	$response_data = pdo_exec( $request, $response, $db, $query, $sql_parms, 'Searching Person by Name', $errCode, false, true, true, false );
 
 	$data = array ('data' => $response_data );

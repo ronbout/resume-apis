@@ -220,6 +220,9 @@ $app->put ( '/companies/{id}', function (Request $request, Response $response) {
 	$post_data = $request->getParsedBody ();
 	$data = array ();
 
+	// have to make sure that contactPersonId is not ""
+
+	$post_data['contactPersonId'] = isset ( $post_data ['contactPersonId'] ) && $post_data ['contactPersonId'] ?  $post_data ['contactPersonId'] : null;
 	$table_cols = array (
 			'name',
 			'description',
