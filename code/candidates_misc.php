@@ -70,9 +70,11 @@ $app->get ( '/candidate_skills/candidate_id/{candidateId}', function (Request $r
 	);
 	
 	$pdo_parms = array($candidate_id);
-	$query = 'SELECT cs.*, t.name AS resumeTechtagName, t.description AS resumeTechtagDescription 
+	$query = 'SELECT cs.*, t.name AS resumeTechtagName, t.description AS resumeTechtagDescription,
+				s.name AS skillName, s.description AS skillDescription
 				FROM `candidate_skills` cs 
 				JOIN techtag t ON t.id = cs.resumeTechtagId 
+				JOIN skill s ON s.id = cs.skillId
 				WHERE candidateId = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, $pdo_parms, 'Retrieving Candidate Skills', $errCode, true, true, true, false );
 	if ($errCode) {
