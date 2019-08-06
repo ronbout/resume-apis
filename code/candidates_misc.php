@@ -46,10 +46,6 @@ $app->get ( '/candidate_skills/skill_candidate_id/{skillId}', function (Request 
 
 
 $app->get ( '/candidate_skills/candidate_id/{candidateId}', function (Request $request, Response $response) {
-	// purpose of this api is to see if a candidate_skills entry exists for a given 
-	// candidate id and skill id.  If so, it will return the id #, 
-	// otherwise, error code 45002 (internal code for Record Not Found)
-	// skillId will be part of the endpoint,  candidateid needs to be in the query
 	$candidate_id = $request->getAttribute ( 'candidateId' );
 	$data = array ();
 
@@ -60,14 +56,31 @@ $app->get ( '/candidate_skills/candidate_id/{candidateId}', function (Request $r
 	if ($errCode) {
 		return $db;
 	}
+
+	// get basic candidate info to return with skills
+	$query = 'SELECT id, personId, personFormattedName FROM candidate_basic_vw WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($candidate_id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$return_data = array(
+		'id' => $response_data['id'],
+		'person' => array('id' => $response_data['personId'], 'formattedName' => $response_data['personFormattedName'])
+	);
 	
 	$pdo_parms = array($candidate_id);
-	$query = 'SELECT * FROM candidate_skills WHERE candidateId = ?';
+	$query = 'SELECT cs.*, t.name AS resumeTechtagName, t.description AS resumeTechtagDescription 
+				FROM `candidate_skills` cs 
+				JOIN techtag t ON t.id = cs.resumeTechtagId 
+				WHERE candidateId = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, $pdo_parms, 'Retrieving Candidate Skills', $errCode, true, true, true, false );
 	if ($errCode) {
 		return $response_data;
 	}
 
-	$data = array ('data' => $response_data );
+	$return_data['skills'] = $response_data;
+
+	$data = array ('data' => $return_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
 } );
