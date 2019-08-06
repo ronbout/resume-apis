@@ -73,7 +73,7 @@ $app->get ( '/candidate_skills/candidate_id/{candidateId}', function (Request $r
 	$query = 'SELECT cs.*, t.name AS resumeTechtagName, t.description AS resumeTechtagDescription,
 				s.name AS skillName, s.description AS skillDescription
 				FROM `candidate_skills` cs 
-				JOIN techtag t ON t.id = cs.resumeTechtagId 
+				LEFT JOIN techtag t ON t.id = cs.resumeTechtagId 
 				JOIN skill s ON s.id = cs.skillId
 				WHERE candidateId = ?';
 	$response_data = pdo_exec( $request, $response, $db, $query, $pdo_parms, 'Retrieving Candidate Skills', $errCode, true, true, true, false );
@@ -85,4 +85,57 @@ $app->get ( '/candidate_skills/candidate_id/{candidateId}', function (Request $r
 
 	$data = array ('data' => $return_data );
 	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+} );
+
+
+$app->put ( '/candidates/{id}/candidate_skills', function (Request $request, Response $response) {
+	$cand_id = $request->getAttribute ( 'id' );
+	$post_data = $request->getParsedBody ();
+	$data = array ();
+	
+	if (! isset($post_data['skills']) || !is_array($post_data['skills'])) {
+		$data ['error'] = true;
+		$data ['message'] = 'An array of skills is required';
+		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+		return $newResponse;
+	}
+
+	$skills = $post_data['skills'];
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect ( $request, $response, $errCode );
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	foreach($skills as $skill) {
+		$query = 'UPDATE candidate_skills
+		SET resumeTechtagId = ?
+		WHERE id = ?';
+
+
+		$skill['resumeTechtagId'] = isset ( $skill['resumeTechtagId']) && $skill['resumeTechtagId'] ? $skill['resumeTechtagId'] : null;
+
+		$insert_data = array( $skill['resumeTechtagId'], $skill['id']);
+
+		$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Updating Candidate Skills', $errCode, false, false, false );
+		if ($errCode) {
+			return $response_data;
+		}
+	}
+
+	// all went well, just return the post data as there is nothing to update
+	$data = array('data' => $post_data);
+
+	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	return $newResponse;
 } );
