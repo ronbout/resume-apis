@@ -7,7 +7,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 function get_pass_info($companyCode) {
 	
 	$passfile = ($_SERVER['HTTP_HOST'] == 'localhost') ? 
-			'C:\Users\ron\Documents\passwords\apis\\'.$companyCode.".txt" 
+			'C:\Users\ronbo\Documents\passwords\apis\\'.$companyCode.".txt" 
 			: "/home/ronbout/passwords/apis/".$companyCode.".txt";
 
 	return @file($passfile);
