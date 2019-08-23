@@ -102,6 +102,19 @@ $app->get('/skills/{id}', function (Request $request, Response $response) {
 
 	$response_data['childSkills'] = $child_data;
 
+	// need entire trees as well for preventing the addition of related
+	// skills that cause a circular relationship
+	$parents = get_skill_tree($request, $response, $db, $id, $errCode, 'get_parent_skills', 'parents');
+	if ($errCode) {
+		return $parents;
+	}
+	$response_data['parent_tree'] = $parents;
+	$children = get_skill_tree($request, $response, $db, $id, $errCode, 'get_child_skills', 'children');
+	if ($errCode) {
+		return $children;
+	}
+	$response_data['child_tree'] = $children;
+
 	$data = array('data' => $response_data);
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 });
