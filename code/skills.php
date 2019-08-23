@@ -108,12 +108,12 @@ $app->get('/skills/{id}', function (Request $request, Response $response) {
 	if ($errCode) {
 		return $parents;
 	}
-	$response_data['parent_tree'] = $parents;
+	$response_data['parentTree'] = $parents;
 	$children = get_skill_tree($request, $response, $db, $id, $errCode, 'get_child_skills', 'children');
 	if ($errCode) {
 		return $children;
 	}
-	$response_data['child_tree'] = $children;
+	$response_data['childTree'] = $children;
 
 	$data = array('data' => $response_data);
 	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
@@ -731,7 +731,7 @@ $app->get('/skill/relatedtree/{id}', function (Request $request, Response $respo
 		return $children;
 	}
 
-	$data = array('data' => array('parent_tree' => $parents, 'child_tree' => $children));
+	$data = array('data' => array('parentTree' => $parents, 'childTree' => $children));
 	$response->withJson($data, 200, JSON_NUMERIC_CHECK);
 });
 
