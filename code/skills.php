@@ -816,11 +816,17 @@ function get_skill_tree($request, $response, $db, $skill_id, &$errCode = 0, $ski
 		$id = $pskill['id'];
 		$tmp = array('id' => $id, 'name' => $pskill['name']);
 		if (in_array($id, $skill_list)) {
-			// if already in the tree, put parents as null so will know it is a repeat
-			$tmp[$skill_prop_name] = null;
+			// *** CHANGED *** if already in the tree, put parents as null so will know it is a repeat
+			// looks like I need to have the full tree with redundancies so that the front end can
+			// handle deleting a related skill w/o having to rebuild the tree
+			// going to keep structure in place for now in case that changes.
+			$next_tree = get_skill_tree($request, $response, $db, $id, $errCode, $skill_fn, $skill_prop_name, $skill_list);
+			if ($next_tree) {
+				$tmp[$skill_prop_name] = $next_tree;
+			}
 		} else {
 			$skill_list[] = $id;
-			$next_tree = get_skill_tree($request, $response, $db, $id, $errCode, $skill_fn, $skill_list);
+			$next_tree = get_skill_tree($request, $response, $db, $id, $errCode, $skill_fn, $skill_prop_name, $skill_list);
 			if ($next_tree) {
 				$tmp[$skill_prop_name] = $next_tree;
 			}
