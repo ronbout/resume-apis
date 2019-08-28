@@ -505,8 +505,8 @@ $app->put('/candidates/{id}/social', function (Request $request, Response $respo
 	$post_data = $request->getParsedBody();
 	$data = array();
 
-	$linkedin = isset($post_data['LinkedIn']) ? filter_var($post_data['LinkedIn'], FILTER_SANITIZE_STRING) : '';
-	$github = isset($post_data['Github']) ? filter_var($post_data['Github'], FILTER_SANITIZE_STRING) : '';
+	$linkedin = isset($post_data['linkedIn']) ? filter_var($post_data['linkedIn'], FILTER_SANITIZE_STRING) : '';
+	$github = isset($post_data['github']) ? filter_var($post_data['github'], FILTER_SANITIZE_STRING) : '';
 
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
