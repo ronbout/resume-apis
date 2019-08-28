@@ -6,13 +6,13 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
-$app->get ( '/candidates', function (Request $request, Response $response) {
-	$data = array ();
+$app->get('/candidates', function (Request $request, Response $response) {
+	$data = array();
 
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
@@ -28,7 +28,7 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 	}
 
 	$query = 'select * from candidate_with_phonetypes_skills_vw  ' . $limit_clause;
-	$response_data = pdo_exec( $request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false );
+	$response_data = pdo_exec($request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -39,26 +39,26 @@ $app->get ( '/candidates', function (Request $request, Response $response) {
 		$resp['certSkillName'] = (array_key_exists('certSkillName', $resp) && $resp['certSkillName']) ? explode('|', $resp['certSkillName']) : null;
 		$resp['edSkillName'] = (array_key_exists('edSkillName', $resp) && $resp['edSkillName']) ? explode('|', $resp['edSkillName']) : null;
 	}
-	
-	$data = array ('data' => $response_data );
-	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-} );
+
+	$data = array('data' => $response_data);
+	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
+});
 
 
-$app->get ( '/candidates/{id}', function (Request $request, Response $response) {
-	$id = $request->getAttribute ( 'id' );
-	$data = array ();
+$app->get('/candidates/{id}', function (Request $request, Response $response) {
+	$id = $request->getAttribute('id');
+	$data = array();
 
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
-	
+
 	$query = 'SELECT * FROM candidate_basic_vw WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false );
+	$response_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true, false, true, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -69,10 +69,10 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	$response_data['certSkillName'] = (array_key_exists('certSkillName', $response_data) && $response_data['certSkillName']) ? explode('|', $response_data['certSkillName']) : null;
 	$response_data['edSkillName'] = (array_key_exists('edSkillName', $response_data) && $response_data['edSkillName']) ? explode('|', $response_data['edSkillName']) : null;
 
-	$response_data = create_lower_object( $response_data, 'person');
-	
-	$response_data = create_lower_object( $response_data, 'agency');
-	
+	$response_data = create_lower_object($response_data, 'person');
+
+	$response_data = create_lower_object($response_data, 'agency');
+
 	$query = 'SELECT id, highlight, sequence, skillIds, skillNames, candidateSkillIds 
 							FROM candidate_highlights_skills_vw 
 							WHERE candidateId = ?
@@ -83,18 +83,18 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 	}
 
 	$response_data['candidateHighlights'] = $highlights ? $highlights : null;
-	
+
 	// get the jobs
 	$query = 'SELECT * FROM candidate_jobs_vw WHERE candidateId = ?';
-	$jobs_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Jobs', $errCode, false, true, true, false );
+	$jobs_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate Jobs', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $jobs_data;
 	}
-	
+
 	if ($jobs_data) {
 		// loop through each job and explode out the pipe | delimited skill lists.
 		foreach ($jobs_data as &$job_data) {
-				
+
 			$job_data['skillIds'] = (array_key_exists('skillIds', $job_data) && $job_data['skillIds']) ? explode('|', $job_data['skillIds']) : null;
 			$job_data['skillNames'] = (array_key_exists('skillNames', $job_data) && $job_data['skillNames']) ? explode('|', $job_data['skillNames']) : null;
 			$job_data['skillPcts'] = (array_key_exists('skillPcts', $job_data) && $job_data['skillPcts']) ? explode('|', $job_data['skillPcts']) : null;
@@ -119,8 +119,8 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			unset($job_data['resumeTechtagNames']);
 
 			// break out the contactPerson and company data into sub objects
-			$job_data = create_lower_object( $job_data, 'contactPerson');
-			$job_data = create_lower_object( $job_data, 'company');
+			$job_data = create_lower_object($job_data, 'contactPerson');
+			$job_data = create_lower_object($job_data, 'company');
 
 			$query = 'SELECT id, highlight, sequence, includeInSummary, skillIds, skillNames, candidateSkillIds 
 									FROM candidate_job_highlights_skills_vw 
@@ -133,14 +133,14 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 		}
 	}
 	$response_data['experience'] = $jobs_data ? $jobs_data : null;
-	
+
 	// get education
 	$query = 'SELECT * FROM candidate_education_vw WHERE candidateId = ?';
-	$eds_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Education', $errCode, false, true, true, false );
+	$eds_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate Education', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $eds_data;
 	}
-	
+
 	if ($eds_data) {
 		// loop through each education and explode out the pipe | delimited skill lists.
 		foreach ($eds_data as &$ed_data) {
@@ -149,7 +149,7 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 			$ed_data['skillNames'] = (array_key_exists('skillNames', $ed_data) && $ed_data['skillNames']) ? explode('|', $ed_data['skillNames']) : null;
 			$ed_data['skillPcts'] = (array_key_exists('skillPcts', $ed_data) && $ed_data['skillPcts']) ? explode('|', $ed_data['skillPcts']) : null;
 			$ed_data['candidateSkillIds'] = (array_key_exists('candidateSkillIds', $ed_data) && $ed_data['candidateSkillIds']) ? explode('|', $ed_data['candidateSkillIds']) : null;
-			
+
 			if ($ed_data['skillIds']) {
 				$data_array = array($ed_data['skillIds'], $ed_data['skillNames'], $ed_data['skillPcts'], $ed_data['candidateSkillIds']);
 				$ed_data['skills'] = create_obj_from_arrays($data_array, array('id', 'name', 'usePct', 'candidateSkillId'));
@@ -164,14 +164,14 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 		}
 	}
 	$response_data['education'] = $eds_data ? $eds_data : array();
-	
+
 	// get certifications
 	$query = 'SELECT * FROM candidate_certifications_vw WHERE candidateId = ?';
-	$certs_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Certifications', $errCode, false, true, true, false );
+	$certs_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate Certifications', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $certs_data;
 	}
-	
+
 	if ($certs_data) {
 		// loop through each certification and explode out the pipe | delimited skill lists.
 		foreach ($certs_data as &$cert_data) {
@@ -193,44 +193,51 @@ $app->get ( '/candidates/{id}', function (Request $request, Response $response) 
 		}
 	}
 	$response_data['certifications'] = $certs_data ? $certs_data : null;
-	
+
 	// read in social media
-	$query = 'SELECT id, socialType, socialLink FROM candidatesocialmedia WHERE candidateId = ?';
-	$social_media = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate Social Media', $errCode, false, true );
+	$query = 'SELECT socialType, socialLink FROM candidatesocialmedia WHERE candidateId = ?';
+	$social_media = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate Social Media', $errCode, false, true);
 	if ($errCode) {
 		return $social_media;
 	}
-	$response_data['socialMedia'] = $social_media ? $social_media : null;
+	$response_data['socialMedia'] = $social_media ? $social_media : [];
+	// front end requires default value for LinkedIn and Github
+	if (array_search('LinkedIn', array_column($social_media, 'socialType')) === false) {
+		$response_data['socialMedia'][] = array('socialType' => 'LinkedIn', 'socialLink' => null);
+	}
+	if (array_search('Github', array_column($social_media, 'socialType')) === false) {
+		$response_data['socialMedia'][] = array('socialType' => 'Github', 'socialLink' => null);
+	}
 
 	// var_dump($response_data);
 	// die();
 
-	$data = array ('data' => $response_data );
-	$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
-} );
+	$data = array('data' => $response_data);
+	$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
+});
 
 
-$app->post ( '/candidates', function (Request $request, Response $response) {
-	$post_data = $request->getParsedBody ();
-	$data = array ();
+$app->post('/candidates', function (Request $request, Response $response) {
+	$post_data = $request->getParsedBody();
+	$data = array();
 
-	$person_id = isset ( $post_data ['personId'] ) ? filter_var ( $post_data ['personId'], FILTER_SANITIZE_STRING ) : '';
-	
-	if ( !$person_id ) {
-		$data ['error'] = true;
-		$data ['message'] = 'Person Id is required.';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+	$person_id = isset($post_data['personId']) ? filter_var($post_data['personId'], FILTER_SANITIZE_STRING) : '';
+
+	if (!$person_id) {
+		$data['error'] = true;
+		$data['message'] = 'Person Id is required.';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
-	
+
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
-	
+
 	// create person item and get insert id
 	$query = 'INSERT INTO candidate
 							(personId)
@@ -238,62 +245,62 @@ $app->post ( '/candidates', function (Request $request, Response $response) {
 
 	$insert_data = array($person_id);
 
-	$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Creating Candidate', $errCode, false, false, false );
+	$response_data = pdo_exec($request, $response, $db, $query, $insert_data, 'Creating Candidate', $errCode, false, false, false);
 	if ($errCode) {
 		return $response_data;
 	}
 
 
 	// get new candidate id to return
-	if (! $candidate_id = $db->lastInsertId() ) {
+	if (!$candidate_id = $db->lastInsertId()) {
 		// unknown insert error - should NOT get here
-		$return_data ['error'] = true;
-		$return_data ['errorCode'] = 45002; // unknown error
-		$return_data ['message'] = 'Unknown error creating Candidate';
-		$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+		$return_data['error'] = true;
+		$return_data['errorCode'] = 45002; // unknown error
+		$return_data['message'] = 'Unknown error creating Candidate';
+		$newResponse = $response->withJson($return_data, 500, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
 
 	// everything was fine. return success and the full data object
-	$data ['id'] = $candidate_id;
-	$data ['personId'] = $person_id;
+	$data['id'] = $candidate_id;
+	$data['personId'] = $person_id;
 
 	// wrap it in data object
-	$data = array (
-			'data' => $data 
+	$data = array(
+		'data' => $data
 	);
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
-} );
+});
 
 
-$app->put ( '/candidates/{id}/highlights', function (Request $request, Response $response) {
+$app->put('/candidates/{id}/highlights', function (Request $request, Response $response) {
 
-	$id = $request->getAttribute ( 'id' );
-	$post_data = $request->getParsedBody ();
-	$data = array ();
-	
-	if (! isset($post_data['highlights']) || !is_array($post_data['highlights'])) {
-		$data ['error'] = true;
-		$data ['message'] = 'An array of highlights is required';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+	$id = $request->getAttribute('id');
+	$post_data = $request->getParsedBody();
+	$data = array();
+
+	if (!isset($post_data['highlights']) || !is_array($post_data['highlights'])) {
+		$data['error'] = true;
+		$data['message'] = 'An array of highlights is required';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
 	$highlights = $post_data['highlights'];
-	
+
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
 
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true);
+	$response_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -323,7 +330,7 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	// because CASCADE is set up in the foreign key, deleting the candidatehighlights will 
 	// result in the candidatehighlights_skills also being deleted.
 	$query = 'DELETE FROM candidatehighlights WHERE candidateId = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
+	$response_data = pdo_exec($request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -340,7 +347,7 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 
 	$candidate_skills =  array();
 
-	foreach($highlights as $highlight) {
+	foreach ($highlights as $highlight) {
 		if ($highlight['id'] === '') {
 			$query_wo_ids .= ' (?, ?, ?),';
 			$insert_data_wo[] = $id;
@@ -367,7 +374,7 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	// 3)
 	if ($insert_data_w) {
 		$query_with_ids = trim($query_with_ids, ',');
-		$highlight_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false );
+		$highlight_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false);
 		if ($errCode) {
 			return $highlight_resp;
 		}
@@ -376,27 +383,26 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 	// 4)
 	if ($insert_data_wo) {
 		$query_wo_ids = trim($query_wo_ids, ',');
-		$highlight_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false );
+		$highlight_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false);
 		if ($errCode) {
 			return $highlight_resp;
 		}
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
-		if (! $insert_id = $db->lastInsertId() ) {
+		if (!$insert_id = $db->lastInsertId()) {
 			// unknown insert error - should NOT get here
-			$return_data ['error'] = true;
-			$return_data ['errorCode'] = 45002; // unknown error
-			$return_data ['message'] = "Unknown error updating Candidate Highlight.  Could not retrieve inserted id's";
-			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+			$return_data['error'] = true;
+			$return_data['errorCode'] = 45002; // unknown error
+			$return_data['message'] = "Unknown error updating Candidate Highlight.  Could not retrieve inserted id's";
+			$newResponse = $response->withJson($return_data, 500, JSON_NUMERIC_CHECK);
 			return $newResponse;
 		}
 		// loop through the highlights inserting the new id's by incrementing from insert_id
-		foreach($highlights as &$highlight) {
+		foreach ($highlights as &$highlight) {
 			if ($highlight['id'] === '') {
 				$highlight['id'] = $insert_id++;
 			}
 		}
-
 	}
 
 	// 5)
@@ -404,7 +410,7 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 								(candidateHighlightsId, candidateSkillId)
 						VALUES ';
 	$insert_array = array();
-	foreach($highlights as &$highlight) {
+	foreach ($highlights as &$highlight) {
 		if ($highlight['skills']) {
 			$highlight_id = $highlight['id'];
 			foreach ($highlight['skills'] as &$skill) {
@@ -416,14 +422,13 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 					$insert_array[] = $candidate_skills[$skill['id']];
 					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
 				}
-
 			}
 		}
 	}
 
 	if ($insert_array) {
 		$query = trim($query, ',');
-		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Highlight Skill', $errCode, false, false, false, false );
+		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Highlight Skill', $errCode, false, false, false, false);
 		if ($errCode) {
 			return $ret;
 		}
@@ -431,41 +436,41 @@ $app->put ( '/candidates/{id}/highlights', function (Request $request, Response 
 
 	// everything was fine. return success and
 	// the original post data with the id's added
-	$data = array (
-			'data' => $highlights
+	$data = array(
+		'data' => $highlights
 	);
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
-} );
+});
 
 
-$app->put ( '/candidates/{id}/objective', function (Request $request, Response $response) {
+$app->put('/candidates/{id}/objective', function (Request $request, Response $response) {
 
-	$cand_id = $request->getAttribute ( 'id' );
-	$post_data = $request->getParsedBody ();
-	$data = array ();
-	
-	if (! isset($post_data['objective']) || !isset($post_data['executiveSummary'])) {
-		$data ['error'] = true;
-		$data ['message'] = 'Objective and Executive Summary are required';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+	$cand_id = $request->getAttribute('id');
+	$post_data = $request->getParsedBody();
+	$data = array();
+
+	if (!isset($post_data['objective']) || !isset($post_data['executiveSummary'])) {
+		$data['error'] = true;
+		$data['message'] = 'Objective and Executive Summary are required';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
-	$objective = isset ( $post_data ['objective'] ) ? filter_var ( $post_data ['objective'], FILTER_SANITIZE_STRING ) : '';
-	$executive_summary = isset ( $post_data ['executiveSummary'] ) ? filter_var ( $post_data ['executiveSummary'], FILTER_SANITIZE_STRING ) : '';
-	
+	$objective = isset($post_data['objective']) ? filter_var($post_data['objective'], FILTER_SANITIZE_STRING) : '';
+	$executive_summary = isset($post_data['executiveSummary']) ? filter_var($post_data['executiveSummary'], FILTER_SANITIZE_STRING) : '';
+
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
 
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -477,7 +482,7 @@ $app->put ( '/candidates/{id}/objective', function (Request $request, Response $
 
 	$insert_data = array($objective, $executive_summary, $cand_id);
 
-	$response_data = pdo_exec( $request, $response, $db, $query, $insert_data, 'Updating Candidate', $errCode, false, false, false );
+	$response_data = pdo_exec($request, $response, $db, $query, $insert_data, 'Updating Candidate', $errCode, false, false, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -490,37 +495,37 @@ $app->put ( '/candidates/{id}/objective', function (Request $request, Response $
 		)
 	);
 
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
-} );
+});
 
 
-$app->put ( '/candidates/{id}/education', function (Request $request, Response $response) {
+$app->put('/candidates/{id}/education', function (Request $request, Response $response) {
 
-	$cand_id = $request->getAttribute ( 'id' );
-	$post_data = $request->getParsedBody ();
-	$data = array ();
-	
-	if (! isset($post_data['education']) || !is_array($post_data['education'])) {
-		$data ['error'] = true;
-		$data ['message'] = 'An array of education is required';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+	$cand_id = $request->getAttribute('id');
+	$post_data = $request->getParsedBody();
+	$data = array();
+
+	if (!isset($post_data['education']) || !is_array($post_data['education'])) {
+		$data['error'] = true;
+		$data['message'] = 'An array of education is required';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
 	$education = $post_data['education'];
-	
+
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
 
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -550,7 +555,7 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 	// because CASCADE is set up in the foreign key, deleting the candidateeducation will 
 	// result in the candidatehighlights_skills also being deleted.
 	$query = 'DELETE FROM candidateeducation WHERE candidateId = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Deleting Candidate Education', $errCode, false, false, false);
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Education', $errCode, false, false, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -569,17 +574,17 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 
 	$candidate_skills =  array();
 
-	foreach($education as $ed) {
-		$school_name = isset ( $ed ['schoolName'] ) ? filter_var ( $ed ['schoolName'], FILTER_SANITIZE_STRING ) : '';
-		$school_municipality = isset ( $ed ['schoolMunicipality'] ) ? filter_var ( $ed ['schoolMunicipality'], FILTER_SANITIZE_STRING ) : null;
-		$school_region = isset ( $ed ['schoolRegion'] ) ? filter_var ( $ed ['schoolRegion'], FILTER_SANITIZE_STRING ) : null;
-		$school_country = isset ( $ed ['schoolCountry'] ) ? filter_var ( $ed ['schoolCountry'], FILTER_SANITIZE_STRING ) : null;
-		$degree_name = isset ( $ed ['degreeName'] ) ? filter_var ( $ed ['degreeName'], FILTER_SANITIZE_STRING ) : '';
-		$degree_type = isset ( $ed ['degreeType'] ) ? filter_var ( $ed ['degreeType'], FILTER_SANITIZE_STRING ) : 'non-Degree';
-		$degree_major = isset ( $ed ['degreeMajor'] ) ? filter_var ( $ed ['degreeMajor'], FILTER_SANITIZE_STRING ) : null;
-		$degree_minor = isset ( $ed ['degreeMinor'] ) ? filter_var ( $ed ['degreeMinor'], FILTER_SANITIZE_STRING ) : null;
-		$start_date = isset ( $ed ['startDate'] ) && $ed['startDate'] ? filter_var ( $ed ['startDate'], FILTER_SANITIZE_STRING ) : null;
-		$end_date = isset ( $ed ['endDate'] ) && $ed['endDate'] ? filter_var ( $ed ['endDate'], FILTER_SANITIZE_STRING ) : null;
+	foreach ($education as $ed) {
+		$school_name = isset($ed['schoolName']) ? filter_var($ed['schoolName'], FILTER_SANITIZE_STRING) : '';
+		$school_municipality = isset($ed['schoolMunicipality']) ? filter_var($ed['schoolMunicipality'], FILTER_SANITIZE_STRING) : null;
+		$school_region = isset($ed['schoolRegion']) ? filter_var($ed['schoolRegion'], FILTER_SANITIZE_STRING) : null;
+		$school_country = isset($ed['schoolCountry']) ? filter_var($ed['schoolCountry'], FILTER_SANITIZE_STRING) : null;
+		$degree_name = isset($ed['degreeName']) ? filter_var($ed['degreeName'], FILTER_SANITIZE_STRING) : '';
+		$degree_type = isset($ed['degreeType']) ? filter_var($ed['degreeType'], FILTER_SANITIZE_STRING) : 'non-Degree';
+		$degree_major = isset($ed['degreeMajor']) ? filter_var($ed['degreeMajor'], FILTER_SANITIZE_STRING) : null;
+		$degree_minor = isset($ed['degreeMinor']) ? filter_var($ed['degreeMinor'], FILTER_SANITIZE_STRING) : null;
+		$start_date = isset($ed['startDate']) && $ed['startDate'] ? filter_var($ed['startDate'], FILTER_SANITIZE_STRING) : null;
+		$end_date = isset($ed['endDate']) && $ed['endDate'] ? filter_var($ed['endDate'], FILTER_SANITIZE_STRING) : null;
 
 		if ($ed['id'] === '') {
 			$query_wo_ids .= ' (?,?,?,?,?,?,?,?,?,?,?),';
@@ -623,7 +628,7 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 	// 3)
 	if ($insert_data_w) {
 		$query_with_ids = trim($query_with_ids, ',');
-		$ed_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Education', $errCode, false, false, false );
+		$ed_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Education', $errCode, false, false, false);
 		if ($errCode) {
 			return $ed_resp;
 		}
@@ -632,27 +637,26 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 	// 4)
 	if ($insert_data_wo) {
 		$query_wo_ids = trim($query_wo_ids, ',');
-		$ed_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, 'Inserting Candidate Education', $errCode, false, false, false );
+		$ed_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, 'Inserting Candidate Education', $errCode, false, false, false);
 		if ($errCode) {
 			return $ed_resp;
 		}
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
-		if (! $insert_id = $db->lastInsertId() ) {
+		if (!$insert_id = $db->lastInsertId()) {
 			// unknown insert error - should NOT get here
-			$return_data ['error'] = true;
-			$return_data ['errorCode'] = 45002; // unknown error
-			$return_data ['message'] = "Unknown error updating Candidate Education.  Could not retrieve inserted id's";
-			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+			$return_data['error'] = true;
+			$return_data['errorCode'] = 45002; // unknown error
+			$return_data['message'] = "Unknown error updating Candidate Education.  Could not retrieve inserted id's";
+			$newResponse = $response->withJson($return_data, 500, JSON_NUMERIC_CHECK);
 			return $newResponse;
 		}
 		// loop through the highlights inserting the new id's by incrementing from insert_id
-		foreach($education as &$ed) {
+		foreach ($education as &$ed) {
 			if ($ed['id'] === '') {
 				$ed['id'] = $insert_id++;
 			}
 		}
-
 	}
 
 	// 5)
@@ -660,7 +664,7 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 								(educationId, candidateSkillId)
 						VALUES ';
 	$insert_array = array();
-	foreach($education as &$ed) {
+	foreach ($education as &$ed) {
 		if ($ed['skills']) {
 			$ed_id = $ed['id'];
 			foreach ($ed['skills'] as &$skill) {
@@ -672,14 +676,13 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 					$insert_array[] = $candidate_skills[$skill['id']];
 					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
 				}
-
 			}
 		}
 	}
 
 	if ($insert_array) {
 		$query = trim($query, ',');
-		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Education Skill', $errCode, false, false, false, false );
+		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Education Skill', $errCode, false, false, false, false);
 		if ($errCode) {
 			return $ret;
 		}
@@ -687,39 +690,39 @@ $app->put ( '/candidates/{id}/education', function (Request $request, Response $
 
 	// everything was fine. return success and
 	// the original post data with the id's added
-	$data = array (
-			'data' => $education
+	$data = array(
+		'data' => $education
 	);
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
-} );
+});
 
 
-$app->put ( '/candidates/{id}/experience', function (Request $request, Response $response) {
-	$cand_id = $request->getAttribute ( 'id' );
-	$post_data = $request->getParsedBody ();
-	$data = array ();
-	
-	if (! isset($post_data['experience']) || !is_array($post_data['experience'])) {
-		$data ['error'] = true;
-		$data ['message'] = 'An array of experience is required';
-		$newResponse = $response->withJson ( $data, 200, JSON_NUMERIC_CHECK );
+$app->put('/candidates/{id}/experience', function (Request $request, Response $response) {
+	$cand_id = $request->getAttribute('id');
+	$post_data = $request->getParsedBody();
+	$data = array();
+
+	if (!isset($post_data['experience']) || !is_array($post_data['experience'])) {
+		$data['error'] = true;
+		$data['message'] = 'An array of experience is required';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
 	$experience = $post_data['experience'];
-	
+
 	// login to the database. if unsuccessful, the return value is the
 	// Response to send back, otherwise the db connection;
 	$errCode = 0;
-	$db = db_connect ( $request, $response, $errCode );
+	$db = db_connect($request, $response, $errCode);
 	if ($errCode) {
 		return $db;
 	}
 
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -746,7 +749,7 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 	// because CASCADE is set up in the foreign key, deleting the candidateeducation will 
 	// result in the related table entries also being deleted
 	$query = 'DELETE FROM candidatejobs WHERE candidateId = ?';
-	$response_data = pdo_exec( $request, $response, $db, $query, array($cand_id), 'Deleting Candidate Experience', $errCode, false, false, false);
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Experience', $errCode, false, false, false);
 	if ($errCode) {
 		return $response_data;
 	}
@@ -754,26 +757,26 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 	// 2)
 	$candidate_skills =  array();
 	$insert_fields = ' candidateId, companyId, startDate, endDate, contactPersonId, payType, startPay, endPay, jobTitleId, summary';
-	foreach($experience as &$exp) {
-		$exp ['companyId'] = isset ( $exp ['companyId'] )  && $exp['companyId'] ? filter_var ( $exp ['companyId'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['startDate'] = isset ( $exp ['startDate'] ) && $exp['startDate'] ? filter_var ( $exp ['startDate'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['endDate'] = isset ( $exp ['endDate'] ) && $exp['endDate'] ? filter_var ( $exp ['endDate'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['contactPersonId'] = isset ( $exp ['contactPersonId'] ) && $exp ['contactPersonId'] ? filter_var ( $exp ['contactPersonId'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['payType'] = isset ( $exp ['payType'] ) ? filter_var ( $exp ['payType'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['startPay'] = isset ( $exp ['startPay'] ) && $exp ['startPay'] !== '' ? filter_var ( $exp ['startPay'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['endPay'] = isset ( $exp ['endPay'] ) && $exp ['endPay'] !== '' ? filter_var ( $exp ['endPay'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['jobTitleId'] = isset ( $exp ['jobTitleId'] )  && $exp['jobTitleId'] ? filter_var ( $exp ['jobTitleId'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['summary'] = isset ( $exp ['summary'] ) ? filter_var ( $exp ['summary'], FILTER_SANITIZE_STRING ) : null;
-		$exp ['skills'] = isset ( $exp ['skills'] )  && is_array($exp['skills']) && $exp['skills'] ? $exp ['skills'] : array();
-		$exp ['highlights'] = isset ( $exp ['highlights'] )  && is_array($exp['highlights']) && $exp['highlights'] ? $exp ['highlights'] : array();
+	foreach ($experience as &$exp) {
+		$exp['companyId'] = isset($exp['companyId'])  && $exp['companyId'] ? filter_var($exp['companyId'], FILTER_SANITIZE_STRING) : null;
+		$exp['startDate'] = isset($exp['startDate']) && $exp['startDate'] ? filter_var($exp['startDate'], FILTER_SANITIZE_STRING) : null;
+		$exp['endDate'] = isset($exp['endDate']) && $exp['endDate'] ? filter_var($exp['endDate'], FILTER_SANITIZE_STRING) : null;
+		$exp['contactPersonId'] = isset($exp['contactPersonId']) && $exp['contactPersonId'] ? filter_var($exp['contactPersonId'], FILTER_SANITIZE_STRING) : null;
+		$exp['payType'] = isset($exp['payType']) ? filter_var($exp['payType'], FILTER_SANITIZE_STRING) : null;
+		$exp['startPay'] = isset($exp['startPay']) && $exp['startPay'] !== '' ? filter_var($exp['startPay'], FILTER_SANITIZE_STRING) : null;
+		$exp['endPay'] = isset($exp['endPay']) && $exp['endPay'] !== '' ? filter_var($exp['endPay'], FILTER_SANITIZE_STRING) : null;
+		$exp['jobTitleId'] = isset($exp['jobTitleId'])  && $exp['jobTitleId'] ? filter_var($exp['jobTitleId'], FILTER_SANITIZE_STRING) : null;
+		$exp['summary'] = isset($exp['summary']) ? filter_var($exp['summary'], FILTER_SANITIZE_STRING) : null;
+		$exp['skills'] = isset($exp['skills'])  && is_array($exp['skills']) && $exp['skills'] ? $exp['skills'] : array();
+		$exp['highlights'] = isset($exp['highlights'])  && is_array($exp['highlights']) && $exp['highlights'] ? $exp['highlights'] : array();
 
 		// 3)
 		// if jobTitleId exists, just use that, otherwise check jobTitleDescription against table
-		if (! $exp['jobTitleId']) {
+		if (!$exp['jobTitleId']) {
 			if ($exp['jobTitle']) {
 				$query = 'SELECT get_candidate_job_title(?, ?)  AS jtid';
 				$insert_array = array($cand_id, $exp['jobTitle']);
-				$jt_resp = pdo_exec( $request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Job Title', $errCode, false, false, true, false );
+				$jt_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Job Title', $errCode, false, false, true, false);
 				if ($errCode) {
 					return $jt_resp;
 				}
@@ -781,7 +784,6 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 			} else {
 				$exp['jobTitleId'] = null;
 			}
-
 		}
 
 		// 4)
@@ -801,17 +803,17 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 									VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ';
 		}
 
-		$exp_resp = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Experience', $errCode, 		false, false, false );
+		$exp_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Experience', $errCode, 		false, false, false);
 		if ($errCode) {
 			return $exp_resp;
 		}
-		if (! $exp['id']) {
-			if (! $insert_id = $db->lastInsertId() ) {
+		if (!$exp['id']) {
+			if (!$insert_id = $db->lastInsertId()) {
 				// unknown insert error - should NOT get here
-				$return_data ['error'] = true;
-				$return_data ['errorCode'] = 45002; // unknown error
-				$return_data ['message'] = "Unknown error inserting Candidate Experience.  Could not retrieve inserted id's";
-				$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+				$return_data['error'] = true;
+				$return_data['errorCode'] = 45002; // unknown error
+				$return_data['message'] = "Unknown error inserting Candidate Experience.  Could not retrieve inserted id's";
+				$newResponse = $response->withJson($return_data, 500, JSON_NUMERIC_CHECK);
 				return $newResponse;
 			}
 			$exp['id'] = $insert_id;
@@ -843,7 +845,7 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 			}
 			if ($insert_array) {
 				$query = trim($query, ',');
-				$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting Candidate Job Skill', $errCode, false, false, 	false, false );
+				$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Job Skill', $errCode, false, false, 	false, false);
 				if ($errCode) {
 					return $ret;
 				}
@@ -867,16 +869,17 @@ $app->put ( '/candidates/{id}/experience', function (Request $request, Response 
 
 	// everything was fine. return success and
 	// the original post data with the id's added
-	$data = array (
-			'data' => $experience
+	$data = array(
+		'data' => $experience
 	);
-	$newResponse = $response->withJson ( $data, 201, JSON_NUMERIC_CHECK );
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
-} );
+});
 
 
-function process_highlights($request, $response, $db, $query, $id_parm, &$errCode) {
-	$highlights = pdo_exec( $request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false );
+function process_highlights($request, $response, $db, $query, $id_parm, &$errCode)
+{
+	$highlights = pdo_exec($request, $response, $db, $query, $id_parm, 'Retrieving Candidate Highlights', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $highlights;
 	}
@@ -887,7 +890,7 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 		$highlight['skillIds'] = (array_key_exists('skillIds', $highlight) && $highlight['skillIds']) ? explode('|', $highlight['skillIds']) : null;
 		$highlight['skillNames'] = (array_key_exists('skillNames', $highlight) && $highlight['skillNames']) ? explode('|', $highlight['skillNames']) : null;
 		$highlight['candidateSkillIds'] = (array_key_exists('candidateSkillIds', $highlight) && $highlight['candidateSkillIds']) ? explode('|', $highlight['candidateSkillIds']) : null;
-		
+
 		if ($highlight['skillIds']) {
 			$highlight['skills'] = create_obj_from_arrays(array($highlight['skillIds'], $highlight['skillNames'], $highlight['candidateSkillIds']), array('id', 'name', 'candidateSkillId'));
 		} else {
@@ -901,7 +904,8 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 	return $highlights;
 }
 
-function update_highlights($request, $response, $db, &$errCode, $cand_id, &$highlights, &$candidate_skills, $hl_table, $hl_link_id, $hl_skill_table, $hl_skill_link_id) {
+function update_highlights($request, $response, $db, &$errCode, $cand_id, &$highlights, &$candidate_skills, $hl_table, $hl_link_id, $hl_skill_table, $hl_skill_link_id)
+{
 	$query_with_ids =	'INSERT INTO ' . $hl_table . '
 											(id, ' . $hl_link_id . ', includeInSummary, highlight, sequence)
 										 VALUES ';
@@ -912,7 +916,7 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 	$insert_data_wo = array();
 
 
-	foreach($highlights as &$highlight) {
+	foreach ($highlights as &$highlight) {
 		if ($highlight['id'] === '') {
 			$query_wo_ids .= ' (?, ?, ?, ?),';
 			$insert_data_wo[] = $cand_id;
@@ -929,7 +933,7 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 		}
 		// check for skills and add to candidate_skills array
 		// if a candidate skills id is present, else create it
-		$highlight ['skills'] = isset ( $highlight ['skills'] )  && is_array($highlight['skills']) && $highlight['skills'] ? $highlight ['skills'] : array();
+		$highlight['skills'] = isset($highlight['skills'])  && is_array($highlight['skills']) && $highlight['skills'] ? $highlight['skills'] : array();
 		if ($highlight['skills']) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $highlight['skills'], $cand_id);
 			if ($errCode) {
@@ -941,7 +945,7 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 	// 3)
 	if ($insert_data_w) {
 		$query_with_ids = trim($query_with_ids, ',');
-		$highlight_resp = pdo_exec( $request, $response, $db, $query_with_ids, $insert_data_w, '1 Updating ' . $hl_table, $errCode, false, false, false );
+		$highlight_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, '1 Updating ' . $hl_table, $errCode, false, false, false);
 		if ($errCode) {
 			return $highlight_resp;
 		}
@@ -950,23 +954,23 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 	// 4)
 	if ($insert_data_wo) {
 		$query_wo_ids = trim($query_wo_ids, ',');
-		$highlight_resp = pdo_exec( $request, $response, $db, $query_wo_ids, $insert_data_wo, '2 Updating ' . $hl_table, $errCode, false, false, false );
+		$highlight_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, '2 Updating ' . $hl_table, $errCode, false, false, false);
 		if ($errCode) {
 			return $highlight_resp;
 		}
 
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
-		if (! $insert_id = $db->lastInsertId() ) {
+		if (!$insert_id = $db->lastInsertId()) {
 			// unknown insert error - should NOT get here
-			$return_data ['error'] = true;
-			$return_data ['errorCode'] = 45002; // unknown error
-			$return_data ['message'] = "Unknown error updating " . $hl_table . ".  Could not retrieve inserted id's";
-			$newResponse = $response->withJson ( $return_data, 500, JSON_NUMERIC_CHECK );
+			$return_data['error'] = true;
+			$return_data['errorCode'] = 45002; // unknown error
+			$return_data['message'] = "Unknown error updating " . $hl_table . ".  Could not retrieve inserted id's";
+			$newResponse = $response->withJson($return_data, 500, JSON_NUMERIC_CHECK);
 			return $newResponse;
 		}
 		// loop through the highlights inserting the new id's by incrementing from insert_id
-		foreach($highlights as &$highlight) {
+		foreach ($highlights as &$highlight) {
 			if ($highlight['id'] === '') {
 				$highlight['id'] = $insert_id++;
 			}
@@ -978,7 +982,7 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 							(' . $hl_skill_link_id . ', candidateSkillId)
 						VALUES ';
 	$insert_array = array();
-	foreach($highlights as &$highlight) {
+	foreach ($highlights as &$highlight) {
 		if ($highlight['skills']) {
 			$highlight_id = $highlight['id'];
 			foreach ($highlight['skills'] as &$skill) {
@@ -990,27 +994,27 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 					$insert_array[] = $candidate_skills[$skill['id']];
 					$skill['candidateSkillId'] = $candidate_skills[$skill['id']];
 				}
-
 			}
 		}
 	}
 
 	if ($insert_array) {
 		$query = trim($query, ',');
-		$ret = pdo_exec( $request, $response, $db, $query, $insert_array, 'Inserting ' . $hl_skill_table, $errCode, false, false, false, false );
+		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting ' . $hl_skill_table, $errCode, false, false, false, false);
 		if ($errCode) {
 			return $ret;
 		}
 	}
 }
 
-function build_candidate_skills($request, $response, $db, &$errCode, $cand_skills_list, $skill_list, $cand_id) {
+function build_candidate_skills($request, $response, $db, &$errCode, $cand_skills_list, $skill_list, $cand_id)
+{
 	$query = 'SELECT get_candidate_skill_id(?, ?)  AS csid';
 
-	foreach($skill_list as $skill) {
+	foreach ($skill_list as $skill) {
 		if (!array_key_exists($skill['id'], $cand_skills_list)) {
 			$insert_array = array($cand_id, $skill['id']);
-			$cs_id = pdo_exec( $request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Candidate Skill', $errCode, false, false, true, false );
+			$cs_id = pdo_exec($request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Candidate Skill', $errCode, false, false, true, false);
 			if ($errCode) {
 				return $cs_id;
 			}
