@@ -499,6 +499,68 @@ $app->put('/candidates/{id}/objective', function (Request $request, Response $re
 	return $newResponse;
 });
 
+$app->put('/candidates/{id}/social', function (Request $request, Response $response) {
+
+	$cand_id = $request->getAttribute('id');
+	$post_data = $request->getParsedBody();
+	$data = array();
+
+	$linkedin = isset($post_data['LinkedIn']) ? filter_var($post_data['LinkedIn'], FILTER_SANITIZE_STRING) : '';
+	$github = isset($post_data['Github']) ? filter_var($post_data['Github'], FILTER_SANITIZE_STRING) : '';
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect($request, $response, $errCode);
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	// update social media if they exist
+	// in case social links were deleted, just delete all for this candidate
+	// *** only delete linkedIn and github as they are currently only 2 on form
+	$query = 'DELETE FROM candidatesocialmedia 
+						WHERE candidateId = ?
+						AND socialType in ("LinkedIn", "Github")';
+
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Social Media', $errCode, false, false, false);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	if ($linkedin) {
+		$resp = update_candidate_social($request, $response, $db, $errCode, "LinkedIn", $linkedin, $cand_id);
+		if ($errCode) {
+			return $resp;
+		}
+	}
+
+	if ($github) {
+		$resp = update_candidate_social($request, $response, $db, $errCode, "Github", $github, $cand_id);
+		if ($errCode) {
+			return $resp;
+		}
+	}
+
+	$data = array(
+		'data' => array(
+			'id' => $cand_id,
+			'LinkedIn' => $linkedin,
+			'Github' => $github
+		)
+	);
+
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
+	return $newResponse;
+});
+
 
 $app->put('/candidates/{id}/education', function (Request $request, Response $response) {
 
@@ -1023,4 +1085,16 @@ function build_candidate_skills($request, $response, $db, &$errCode, $cand_skill
 	}
 
 	return $cand_skills_list;
+}
+
+function update_candidate_social($request, $response, $db, &$errCode, $social_type, $social_link, $candidate_id)
+{
+	$query = 'INSERT INTO candidatesocialmedia
+							(candidateId, socialType, socialLink)
+							VALUES ( ?, ?, ?)';
+
+	$insert_data = array($candidate_id, $social_type, $social_link);
+
+	$response_data = pdo_exec($request, $response, $db, $query, $insert_data, 'Creating Candidate Social Media', $errCode, false, false, false);
+	return $response_data;
 }
