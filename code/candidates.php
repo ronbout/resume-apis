@@ -82,7 +82,7 @@ $app->get('/candidates/{id}', function (Request $request, Response $response) {
 		return $highlights;
 	}
 
-	$response_data['candidateHighlights'] = $highlights ? $highlights : null;
+	$response_data['candidateHighlights'] = $highlights ? $highlights : array();
 
 	// get the jobs
 	$query = 'SELECT * FROM candidate_jobs_vw WHERE candidateId = ?';
@@ -132,7 +132,7 @@ $app->get('/candidates/{id}', function (Request $request, Response $response) {
 			$job_data['highlights'] = $highlights ? $highlights : array();
 		}
 	}
-	$response_data['experience'] = $jobs_data ? $jobs_data : null;
+	$response_data['experience'] = $jobs_data ? $jobs_data : array();
 
 	// get education
 	$query = 'SELECT * FROM candidate_education_vw WHERE candidateId = ?';
@@ -192,7 +192,7 @@ $app->get('/candidates/{id}', function (Request $request, Response $response) {
 			unset($cert_data['skillPcts']);
 		}
 	}
-	$response_data['certifications'] = $certs_data ? $certs_data : null;
+	$response_data['certifications'] = $certs_data ? $certs_data : array();
 
 	// read in social media
 	$query = 'SELECT socialType, socialLink FROM candidatesocialmedia WHERE candidateId = ?';
