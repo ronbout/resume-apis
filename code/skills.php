@@ -182,8 +182,8 @@ $app->get('/skills/search/{srch}', function (Request $request, Response $respons
 	}
 
 	if (($stmt->rowCount() == 0)) {
-		$data['error'] = false;
-		$data['message'] = 'No records Found';
+		// this is not an error so just return an empty data array
+		$data['data'] = array();
 		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
