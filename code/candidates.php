@@ -416,7 +416,7 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 			foreach ($highlight['skills'] as &$skill) {
 				$query .= ' (?, ?),';
 				$insert_array[] = $highlight_id;
-				if ($skill['candidateSkillId']) {
+				if (isset($skill['candidateSkillId']) && $skill['candidateSkillId']) {
 					$insert_array[] = $skill['candidateSkillId'];
 				} else {
 					$insert_array[] = $candidate_skills[$skill['id']];
@@ -732,7 +732,7 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 			foreach ($ed['skills'] as &$skill) {
 				$query .= ' (?, ?),';
 				$insert_array[] = $ed_id;
-				if ($skill['candidateSkillId']) {
+				if (isset($skill['candidateSkillId']) && $skill['candidateSkillId']) {
 					$insert_array[] = $skill['candidateSkillId'];
 				} else {
 					$insert_array[] = $candidate_skills[$skill['id']];
@@ -908,7 +908,7 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 			foreach ($cert['skills'] as &$skill) {
 				$query .= ' (?, ?),';
 				$insert_array[] = $cert_id;
-				if ($skill['candidateSkillId']) {
+				if (isset($skill['candidateSkillId']) && $skill['candidateSkillId']) {
 					$insert_array[] = $skill['candidateSkillId'];
 				} else {
 					$insert_array[] = $candidate_skills[$skill['id']];
