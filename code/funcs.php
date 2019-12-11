@@ -2,16 +2,26 @@
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\UploadedFileInterface;
 
 
 function get_pass_info($companyCode)
 {
-
 	$passfile = ($_SERVER['HTTP_HOST'] == 'localhost') ?
 		'C:\Users\ronbo\Documents\passwords\apis\\' . $companyCode . ".txt"
 		: "/home/ronbout/passwords/apis/" . $companyCode . ".txt";
 
 	return @file($passfile);
+}
+
+
+function get_imgs_dir()
+{
+	$imgs_dir = ($_SERVER['HTTP_HOST'] == 'localhost') ?
+		'C:\Users\ronbo\Documents\htdocs\3sixd\imgs'
+		: "/var/www/html/3sixd/imgs";
+
+	return $imgs_dir;
 }
 
 
@@ -267,4 +277,14 @@ function create_obj_from_arrays($data_arrays, $label_arrays)
 	}
 
 	return $ret_array;
+}
+
+function moveUploadedFile($directory, $basename, UploadedFileInterface $uploadedFile)
+{
+	$extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+	$filename = $basename . '.' . $extension;
+
+	$uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
+
+	return $filename;
 }

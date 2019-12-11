@@ -5,6 +5,7 @@
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\UploadedFileInterface;
 
 $app->get('/candidates', function (Request $request, Response $response) {
 	$data = array();
@@ -1109,6 +1110,68 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 	$data = array(
 		'data' => $experience
 	);
+	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
+	return $newResponse;
+});
+
+
+$app->post('/candidates/{id}/image', function (Request $request, Response $response) {
+
+	$cand_id = $request->getAttribute('id');
+	$post_data = $request->getUploadedFiles();
+	$data = array();
+
+	if (!isset($post_data['image'])) {
+		$data['error'] = true;
+		$data['message'] = 'Image file is required';
+		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
+		return $newResponse;
+	}
+
+	// login to the database. if unsuccessful, the return value is the
+	// Response to send back, otherwise the db connection;
+	$errCode = 0;
+	$db = db_connect($request, $response, $errCode);
+	if ($errCode) {
+		return $db;
+	}
+
+	// need to make sure that this record id exists to update
+	$query = 'SELECT * FROM candidate WHERE id = ?';
+	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
+	if ($errCode) {
+		return $response_data;
+	}
+
+	$upload_dir = get_imgs_dir();
+	$basename = "candidate$cand_id";
+	$image_file = $post_data['image'];
+
+	$img_err = $image_file->getError();
+
+	if ($img_err === UPLOAD_ERR_OK) {
+		try {
+			$filename = moveUploadedFile($upload_dir, $basename, $image_file);
+		} catch (Exception $e) {
+			$data['error'] = true;
+			$data['message'] = $e->getMessage();
+			$newResponse = $response->withJson($data, 401, JSON_NUMERIC_CHECK);
+			return $newResponse;
+		}
+	} else {
+		$data['error'] = true;
+		$data['message'] = $img_err;
+		$newResponse = $response->withJson($data, 401, JSON_NUMERIC_CHECK);
+		return $newResponse;
+	}
+
+	$data = array(
+		'data' => array(
+			'id' => $cand_id,
+			'filename' => $filename
+		)
+	);
+
 	$newResponse = $response->withJson($data, 201, JSON_NUMERIC_CHECK);
 	return $newResponse;
 });
