@@ -28,7 +28,7 @@ $app->get('/candidates', function (Request $request, Response $response) {
 		$limit_clause .= ' OFFSET ' . $q_vars['offset'] . ' ';
 	}
 
-	$query = 'select * from candidate_with_phonetypes_skills_vw  ' . $limit_clause;
+	$query = 'select * from candidate_basic_vw  ' . $limit_clause;
 	$response_data = pdo_exec($request, $response, $db, $query, array(), 'Retrieving Companies', $errCode, false, true, true, false);
 	if ($errCode) {
 		return $response_data;
