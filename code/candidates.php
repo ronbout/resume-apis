@@ -451,13 +451,14 @@ $app->put('/candidates/{id}/objective', function (Request $request, Response $re
 	$post_data = $request->getParsedBody();
 	$data = array();
 
-	if (!isset($post_data['objective']) || !isset($post_data['executiveSummary'])) {
+	if (!isset($post_data['objective']) || !isset($post_data['executiveSummary']) || !isset($post_data['jobTitle'])) {
 		$data['error'] = true;
-		$data['message'] = 'Objective and Executive Summary are required';
+		$data['message'] = 'Title, Objective and Executive Summary are required';
 		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;
 	}
 
+	$job_title = isset($post_data['jobTitle']) ? filter_var($post_data['jobTitle'], FILTER_SANITIZE_STRING,	FILTER_FLAG_NO_ENCODE_QUOTES) : '';
 	$objective = isset($post_data['objective']) ? filter_var($post_data['objective'], FILTER_SANITIZE_STRING,	FILTER_FLAG_NO_ENCODE_QUOTES) : '';
 	$executive_summary = isset($post_data['executiveSummary']) ? filter_var($post_data['executiveSummary'], FILTER_SANITIZE_STRING,	FILTER_FLAG_NO_ENCODE_QUOTES) : '';
 
@@ -477,11 +478,12 @@ $app->put('/candidates/{id}/objective', function (Request $request, Response $re
 	}
 
 	$query = 'UPDATE candidate
-							SET objective = ?,
+							SET jobTitle = ?, 
+									objective = ?,
 									executiveSummary = ?
 							WHERE id = ?';
 
-	$insert_data = array($objective, $executive_summary, $cand_id);
+	$insert_data = array($job_title, $objective, $executive_summary, $cand_id);
 
 	$response_data = pdo_exec($request, $response, $db, $query, $insert_data, 'Updating Candidate', $errCode, false, false, false);
 	if ($errCode) {
@@ -491,6 +493,7 @@ $app->put('/candidates/{id}/objective', function (Request $request, Response $re
 	$data = array(
 		'data' => array(
 			'id' => $cand_id,
+			'jobTitle' => $job_title,
 			'objective' => $objective,
 			'executiveSummary' => $executive_summary
 		)
