@@ -67,7 +67,9 @@ $app->get('/persons/search', function (Request $request, Response $response) {
 	$name_query =	"SELECT * 
 									FROM person_with_phonetypes_vw
 									WHERE jws_score(:name, CONCAT_WS(' ', givenName, familyName)) > 0.8 
-									OR jws_score(:name, CONCAT_WS(' ', familyName, givenName)) > 0.8 ";
+									OR jws_score(:name, CONCAT_WS(' ', familyName, givenName)) > 0.8 
+									OR familyName LIKE :likename
+									OR givenName LIKE :likename";
 	$email_query = "SELECT *
 									FROM person_with_phonetypes_vw
 									WHERE email1 = :email
@@ -82,6 +84,7 @@ $app->get('/persons/search', function (Request $request, Response $response) {
 	if ($name) {
 		$query = $name_query;
 		$sql_parms[':name'] = $name;
+		$sql_parms[':likename'] = "%$name%";
 	}
 	if ($email) {
 		$query = $query ? $query . ' UNION ' . $email_query : $email_query;

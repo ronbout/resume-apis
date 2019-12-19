@@ -78,7 +78,8 @@ $app->get('/companies/search', function (Request $request, Response $response) {
 	$query = '';
 	$name_query =	"SELECT * 
 									FROM company_vw
-									WHERE jws_score(:name, name) > 0.8";
+									WHERE jws_score(:name, name) > 0.8
+									OR name LIKE :likename";
 	$email_query = "SELECT *
 									FROM company_vw
 									WHERE email = :email";
@@ -90,6 +91,7 @@ $app->get('/companies/search', function (Request $request, Response $response) {
 	if ($name) {
 		$query = $name_query;
 		$sql_parms[':name'] = $name;
+		$sql_parms[':likename'] = "%$name%";
 	}
 	if ($email) {
 		$query = $query ? $query . ' UNION ' . $email_query : $email_query;
