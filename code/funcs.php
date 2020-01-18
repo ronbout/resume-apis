@@ -33,11 +33,11 @@ function build_update_SQL_cols($post_data, $table_cols)
 	for ($i = 0; $i < count($table_cols); $i++) {
 		$col_name = $table_cols[$i];
 		if (array_key_exists($col_name, $post_data)) {
-			$col_string = isset($post_data[$col_name]) ? filter_var(
+			$col_string = isset($post_data[$col_name]) ? trim(filter_var(
 				$post_data[$col_name],
 				FILTER_SANITIZE_STRING,
 				FILTER_FLAG_NO_ENCODE_QUOTES
-			) : null;
+			)) : null;
 			// REST cannot send null value, so using #N/A
 			$col_string = ($col_string == '#N/A') ? null : $col_string;
 			$sql_cols .= ($sql_cols) ? ', ' : '';
