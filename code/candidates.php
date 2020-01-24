@@ -1012,19 +1012,18 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 		$exp['highlights'] = isset($exp['highlights'])  && is_array($exp['highlights']) && $exp['highlights'] ? $exp['highlights'] : array();
 
 		// 3)
-		// if jobTitleId exists, just use that, otherwise check jobTitleDescription against table
-		if (!$exp['jobTitleId']) {
-			if ($exp['jobTitle']) {
-				$query = 'SELECT get_candidate_job_title(?, ?)  AS jtid';
-				$insert_array = array($cand_id, $exp['jobTitle']);
-				$jt_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Job Title', $errCode, false, false, true, false);
-				if ($errCode) {
-					return $jt_resp;
-				}
-				$exp['jobTitleId'] = $jt_resp['jtid'];
-			} else {
-				$exp['jobTitleId'] = null;
+		// use stored proc to handle various scenarios related to job title
+		// it will return the proper jobTitleId, which is all experience needs
+		if ($exp['jobTitle']) {
+			$query = 'SELECT get_candidate_job_title(?, ?, ?, ?)  AS jtid';
+			$insert_array = array($cand_id, $exp['jobTitle'], $exp['jobTitleId'], $exp['id'] ? $exp['id'] : null);
+			$jt_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Job Title', $errCode, false, false, true, false);
+			if ($errCode) {
+				return $jt_resp;
 			}
+			$exp['jobTitleId'] = $jt_resp['jtid'];
+		} else {
+			$exp['jobTitleId'] = null;
 		}
 
 		// 4)
