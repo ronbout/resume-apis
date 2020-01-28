@@ -179,6 +179,8 @@ function pdo_exec(Request $request, Response $response, $db, $query, $execArray,
 		$errCode = true;
 		$data['error'] = true;
 		$data['errorCode'] = $stmt->errorCode();
+		$data['sql'] = $query;
+		$data['execArray'] = $execArray;
 		$data['message'] = 'Database SQL Error ' . $errMsg . ' ' . $stmt->errorCode() . ' - ' . $stmt->errorInfo()[2];
 		$newResponse = $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 		return $newResponse;

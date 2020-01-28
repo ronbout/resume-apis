@@ -1103,7 +1103,10 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 			 *  BUT that is not going in!!
 			 * 
 			 */
-			update_highlights($request, $response, $db, $errCode, $exp['id'], $exp['highlights'], $candidate_skills, 'candidatejobhighlights', 'jobId', 'candidatejobhighlights_skills', 'candidateJobHighlightsId');
+			$result = update_highlights($request, $response, $db, $errCode, $cand_id, $exp['id'], $exp['highlights'], $candidate_skills, 'candidatejobhighlights', 'jobId', 'candidatejobhighlights_skills', 'candidateJobHighlightsId');
+			if ($errCode) {
+				return $result;
+			}
 		}
 	}
 
@@ -1206,7 +1209,7 @@ function process_highlights($request, $response, $db, $query, $id_parm, &$errCod
 	return $highlights;
 }
 
-function update_highlights($request, $response, $db, &$errCode, $cand_id, &$highlights, &$candidate_skills, $hl_table, $hl_link_id, $hl_skill_table, $hl_skill_link_id)
+function update_highlights($request, $response, $db, &$errCode, $cand_id, $connect_id, &$highlights, &$candidate_skills, $hl_table, $hl_link_id, $hl_skill_table, $hl_skill_link_id)
 {
 	$query_with_ids =	'INSERT INTO ' . $hl_table . '
 											(id, ' . $hl_link_id . ', includeInSummary, highlight, sequence)
@@ -1221,14 +1224,14 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 	foreach ($highlights as &$highlight) {
 		if ($highlight['id'] === '') {
 			$query_wo_ids .= ' (?, ?, ?, ?),';
-			$insert_data_wo[] = $cand_id;
+			$insert_data_wo[] = $connect_id;
 			$insert_data_wo[] = $highlight['includeInSummary'];
 			$insert_data_wo[] = $highlight['highlight'];
 			$insert_data_wo[] = $highlight['sequence'];
 		} else {
 			$query_with_ids .= ' (?, ?, ?, ?, ?),';
 			$insert_data_w[] = $highlight['id'];
-			$insert_data_w[] = $cand_id;
+			$insert_data_w[] = $connect_id;
 			$insert_data_w[] = $highlight['includeInSummary'];
 			$insert_data_w[] = $highlight['highlight'];
 			$insert_data_w[] = $highlight['sequence'];
@@ -1236,6 +1239,7 @@ function update_highlights($request, $response, $db, &$errCode, $cand_id, &$high
 		// check for skills and add to candidate_skills array
 		// if a candidate skills id is present, else create it
 		$highlight['skills'] = isset($highlight['skills'])  && is_array($highlight['skills']) && $highlight['skills'] ? $highlight['skills'] : array();
+
 		if ($highlight['skills']) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $highlight['skills'], $cand_id);
 			if ($errCode) {
