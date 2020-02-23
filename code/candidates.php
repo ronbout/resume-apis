@@ -299,10 +299,14 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 		return $db;
 	}
 
+	// set up transaction for rollback upon errorCode
+	$db->beginTransaction();
+
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -333,6 +337,7 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 	$query = 'DELETE FROM candidatehighlights WHERE candidateId = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($id), 'Deleting Candidate Highlights', $errCode, false, false, false);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -367,6 +372,7 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 		if ($highlight['skills']) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $highlight['skills'], $id);
 			if ($errCode) {
+				$db->rollBack();
 				return $candidate_skills;
 			}
 		}
@@ -377,6 +383,7 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 		$query_with_ids = trim($query_with_ids, ',');
 		$highlight_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Highlights', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $highlight_resp;
 		}
 	}
@@ -386,11 +393,13 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 		$query_wo_ids = trim($query_wo_ids, ',');
 		$highlight_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, 'Updating Candidate Highlights', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $highlight_resp;
 		}
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
 		if (!$insert_id = $db->lastInsertId()) {
+			$db->rollBack();
 			// unknown insert error - should NOT get here
 			$return_data['error'] = true;
 			$return_data['errorCode'] = 45002; // unknown error
@@ -431,12 +440,14 @@ $app->put('/candidates/{id}/highlights', function (Request $request, Response $r
 		$query = trim($query, ',');
 		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Highlight Skill', $errCode, false, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $ret;
 		}
 	}
 
 	// everything was fine. return success and
 	// the original post data with the id's added
+	$db->commit();
 	$data = array(
 		'data' => $highlights
 	);
@@ -520,10 +531,14 @@ $app->put('/candidates/{id}/social', function (Request $request, Response $respo
 		return $db;
 	}
 
+	// set up transaction for rollback upon errorCode
+	$db->beginTransaction();
+
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -536,12 +551,14 @@ $app->put('/candidates/{id}/social', function (Request $request, Response $respo
 
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Social Media', $errCode, false, false, false);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
 	if ($linkedin) {
 		$resp = update_candidate_social($request, $response, $db, $errCode, "LinkedIn", $linkedin, $cand_id);
 		if ($errCode) {
+			$db->rollBack();
 			return $resp;
 		}
 	}
@@ -549,9 +566,12 @@ $app->put('/candidates/{id}/social', function (Request $request, Response $respo
 	if ($github) {
 		$resp = update_candidate_social($request, $response, $db, $errCode, "Github", $github, $cand_id);
 		if ($errCode) {
+			$db->rollBack();
 			return $resp;
 		}
 	}
+
+	$db->commit();
 
 	$data = array(
 		'data' => array(
@@ -589,10 +609,14 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 		return $db;
 	}
 
+	// set up transaction for rollback upon errorCode
+	$db->beginTransaction();
+
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -623,6 +647,7 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 	$query = 'DELETE FROM candidateeducation WHERE candidateId = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Education', $errCode, false, false, false);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -686,6 +711,7 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 		if (isset($ed['skills']) && count($ed['skills'])) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $ed['skills'], $cand_id);
 			if ($errCode) {
+				$db->rollBack();
 				return $candidate_skills;
 			}
 		}
@@ -696,6 +722,7 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 		$query_with_ids = trim($query_with_ids, ',');
 		$ed_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Education', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $ed_resp;
 		}
 	}
@@ -705,11 +732,13 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 		$query_wo_ids = trim($query_wo_ids, ',');
 		$ed_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, 'Inserting Candidate Education', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $ed_resp;
 		}
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
 		if (!$insert_id = $db->lastInsertId()) {
+			$db->rollBack();
 			// unknown insert error - should NOT get here
 			$return_data['error'] = true;
 			$return_data['errorCode'] = 45002; // unknown error
@@ -750,12 +779,14 @@ $app->put('/candidates/{id}/education', function (Request $request, Response $re
 		$query = trim($query, ',');
 		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Education Skill', $errCode, false, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $ret;
 		}
 	}
 
 	// everything was fine. return success and
 	// the original post data with the id's added
+	$db->commit();
 	$data = array(
 		'data' => $education
 	);
@@ -787,10 +818,14 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 		return $db;
 	}
 
+	// set up transaction for rollback upon errorCode
+	$db->beginTransaction();
+
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -819,6 +854,7 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 	$query = 'DELETE FROM candidatecertifications WHERE candidateId = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Certifications', $errCode, false, false, false);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -862,6 +898,7 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 		if (isset($cert['skills']) && count($cert['skills'])) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $cert['skills'], $cand_id);
 			if ($errCode) {
+				$db->rollBack();
 				return $candidate_skills;
 			}
 		}
@@ -872,6 +909,7 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 		$query_with_ids = trim($query_with_ids, ',');
 		$cert_resp = pdo_exec($request, $response, $db, $query_with_ids, $insert_data_w, 'Updating Candidate Certifications', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $cert_resp;
 		}
 	}
@@ -881,11 +919,13 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 		$query_wo_ids = trim($query_wo_ids, ',');
 		$cert_resp = pdo_exec($request, $response, $db, $query_wo_ids, $insert_data_wo, 'Inserting Candidate Certifications', $errCode, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $cert_resp;
 		}
 		// need to get insert id.  lastInsertId is actually the first of
 		// the group, so can just increment by 1 from there.
 		if (!$insert_id = $db->lastInsertId()) {
+			$db->rollBack();
 			// unknown insert error - should NOT get here
 			$return_data['error'] = true;
 			$return_data['errorCode'] = 45002; // unknown error
@@ -926,12 +966,14 @@ $app->put('/candidates/{id}/certifications', function (Request $request, Respons
 		$query = trim($query, ',');
 		$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Certifications Skill', $errCode, false, false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $ret;
 		}
 	}
 
 	// everything was fine. return success and
 	// the original post data with the id's added
+	$db->commit();
 	$data = array(
 		'data' => $certifications
 	);
@@ -961,10 +1003,14 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 		return $db;
 	}
 
+	// set up transaction for rollback upon errorCode
+	$db->beginTransaction();
+
 	// need to make sure that this record id exists to update
 	$query = 'SELECT * FROM candidate WHERE id = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Retrieving Candidate', $errCode, true);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -992,6 +1038,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 	$query = 'DELETE FROM candidatejobs WHERE candidateId = ?';
 	$response_data = pdo_exec($request, $response, $db, $query, array($cand_id), 'Deleting Candidate Experience', $errCode, false, false, false);
 	if ($errCode) {
+		$db->rollBack();
 		return $response_data;
 	}
 
@@ -1019,6 +1066,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 			$insert_array = array($cand_id, $exp['jobTitle'], $exp['jobTitleId'], $exp['id'] ? $exp['id'] : null);
 			$jt_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Retrieving/Inserting Job Title', $errCode, false, false, true, false);
 			if ($errCode) {
+				$db->rollBack();
 				return $jt_resp;
 			}
 			$exp['jobTitleId'] = $jt_resp['jtid'];
@@ -1045,10 +1093,12 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 
 		$exp_resp = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Experience', $errCode, 		false, false, false);
 		if ($errCode) {
+			$db->rollBack();
 			return $exp_resp;
 		}
 		if (!$exp['id']) {
 			if (!$insert_id = $db->lastInsertId()) {
+				$db->rollBack();
 				// unknown insert error - should NOT get here
 				$return_data['error'] = true;
 				$return_data['errorCode'] = 45002; // unknown error
@@ -1066,6 +1116,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 		if ($exp['skills']) {
 			$candidate_skills = build_candidate_skills($request, $response, $db, $errCode, $candidate_skills, $exp['skills'], $cand_id);
 			if ($errCode) {
+				$db->rollBack();
 				return $candidate_skills;
 			}
 
@@ -1087,6 +1138,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 				$query = trim($query, ',');
 				$ret = pdo_exec($request, $response, $db, $query, $insert_array, 'Inserting Candidate Job Skill', $errCode, false, false, 	false, false);
 				if ($errCode) {
+					$db->rollBack();
 					return $ret;
 				}
 			}
@@ -1105,6 +1157,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 			 */
 			$result = update_highlights($request, $response, $db, $errCode, $cand_id, $exp['id'], $exp['highlights'], $candidate_skills, 'candidatejobhighlights', 'jobId', 'candidatejobhighlights_skills', 'candidateJobHighlightsId');
 			if ($errCode) {
+				$db->rollBack();
 				return $result;
 			}
 		}
@@ -1112,6 +1165,7 @@ $app->put('/candidates/{id}/experience', function (Request $request, Response $r
 
 	// everything was fine. return success and
 	// the original post data with the id's added
+	$db->commit();
 	$data = array(
 		'data' => $experience
 	);
