@@ -223,6 +223,7 @@ $app->post('/candidates', function (Request $request, Response $response) {
 	$data = array();
 
 	$person_id = isset($post_data['personId']) ? filter_var($post_data['personId'], FILTER_SANITIZE_STRING,	FILTER_FLAG_NO_ENCODE_QUOTES) : '';
+	$user_id = isset($post_data['userId']) ? filter_var($post_data['userId'], FILTER_SANITIZE_STRING,	FILTER_FLAG_NO_ENCODE_QUOTES) : null;
 
 	if (!$person_id) {
 		$data['error'] = true;
@@ -241,10 +242,10 @@ $app->post('/candidates', function (Request $request, Response $response) {
 
 	// create person item and get insert id
 	$query = 'INSERT INTO candidate
-							(personId)
-							VALUES ( ?)';
+							(personId, userId)
+							VALUES ( ?, ?)';
 
-	$insert_data = array($person_id);
+	$insert_data = array($person_id, $user_id);
 
 	$response_data = pdo_exec($request, $response, $db, $query, $insert_data, 'Creating Candidate', $errCode, false, false, false);
 	if ($errCode) {
@@ -262,10 +263,12 @@ $app->post('/candidates', function (Request $request, Response $response) {
 		return $newResponse;
 	}
 
-
 	// everything was fine. return success and the full data object
 	$data['id'] = $candidate_id;
 	$data['personId'] = $person_id;
+	if ($user_id) {
+		$data['userId'] = $user_id;
+	}
 
 	// wrap it in data object
 	$data = array(
