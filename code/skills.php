@@ -704,7 +704,8 @@ $app->get('/skill_childskills/{id}', function (Request $request, Response $respo
 
 // returns parent and child skill trees all the way up and down
 $app->get('/skill/relatedtree/{id}', function (Request $request, Response $response) {
-    $id = $request->getAttribute('id');
+		$ids = $request->getAttribute('id');
+		$query = $request->getQueryParams();
     $data = [];
 
     // login to the database. if unsuccessful, the return value is the
@@ -713,19 +714,38 @@ $app->get('/skill/relatedtree/{id}', function (Request $request, Response $respo
     $db = db_connect($request, $response, $errCode);
     if ($errCode) {
         return $db;
-    }
+		}
+		
+		// add in ability to request only child or parent tree with
+		// query var ttype=parent | ttype=child
+		$ttype = isset($query['ttype']) && ($query['ttype'] === 'parent' || $query['ttype'] === 'child') ? $query['ttype'] : '';
 
-    $parents = get_skill_tree($request, $response, $db, $id, $errCode, 'get_parent_skills', 'parents');
-    if ($errCode) {
-        return $parents;
-    }
+		// id can be comma-delimited list so convert to array and loop
+		$idList = explode(',', $ids);
 
-    $children = get_skill_tree($request, $response, $db, $id, $errCode, 'get_child_skills', 'children');
-    if ($errCode) {
-        return $children;
-    }
+		foreach($idList as $id) {
+			$retTree = array('skillId' => $id);
+			if (!$ttype || $ttype === 'parent') {
+				$parents = get_skill_tree($request, $response, $db, $id, $errCode, 'get_parent_skills', 'parents');
+				if ($errCode) {
+						return $parents;
+				}
+	
+				$retTree['parentTree'] = $parents;
+			}
 
-    $data = ['data' => ['parentTree' => $parents, 'childTree' => $children]];
+			if (!$ttype || $ttype === 'child') {
+				$children = get_skill_tree($request, $response, $db, $id, $errCode, 'get_child_skills', 'children');
+				if ($errCode) {
+						return $children;
+				}
+				$retTree['childTree'] = $children;
+			}
+
+			$data[] = $retTree;
+		}
+
+    $data = ['data' => $data];
     $response->withJson($data, 200, JSON_NUMERIC_CHECK);
 });
 
